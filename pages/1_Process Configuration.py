@@ -6,6 +6,11 @@ Purpose: Configure delivery process parameters, thresholds, and targets
 
 import streamlit as st
 import json
+import sys
+import os
+
+# Add project root to path for Streamlit Cloud
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import (
     get_config, save_config, BusinessConfig, StageConfig,

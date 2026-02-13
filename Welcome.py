@@ -11,8 +11,8 @@ from datetime import datetime
 import sys
 import os
 
-# Ensure parent directory is in path for agents module
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Ensure project root is in path for local modules
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from dotenv import load_dotenv
 load_dotenv()

@@ -6,6 +6,11 @@ Works: Offline (Lite mode) with AI enhancement (Pro mode)
 
 import streamlit as st
 import pandas as pd
+import sys
+import os
+
+# Add project root to path for Streamlit Cloud
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import get_config, is_pro_mode
 from core.local_analytics import get_local_analytics
