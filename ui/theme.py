@@ -114,6 +114,7 @@ PLOTLY_TEMPLATE = {
             "size": 12
         },
         "title": {
+            "text": "",
             "font": {
                 "color": "#ffffff",
                 "size": 16

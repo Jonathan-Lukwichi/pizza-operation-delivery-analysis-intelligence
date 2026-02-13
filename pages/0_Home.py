@@ -98,11 +98,6 @@ def main():
 
         st.markdown("---")
 
-        # ── Budget Widget (Pro mode only) ──
-        if is_pro_mode():
-            render_budget_widget()
-            st.markdown("---")
-
         # ── Automation Status (Pro mode only) ──
         if is_pro_mode() and AI_AVAILABLE:
             ai = get_ai_service()
