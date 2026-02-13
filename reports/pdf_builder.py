@@ -36,6 +36,22 @@ class PizzaOpsPDF:
         self.dark = (14, 17, 23)
         self.gray = (148, 163, 184)
 
+    def wrap_long_words(self, text: str, max_length: int = 50) -> str:
+        """
+        Breaks excessively long words in a string by inserting hyphens.
+        Useful for preventing fpdf2 from failing on long, unbroken strings (like URLs)
+        that exceed the cell width.
+        """
+        words = []
+        for word in text.split(' '):
+            if len(word) > max_length and not ' ' in word: # Check if it's genuinely a long word without spaces
+                # Insert hyphens
+                wrapped_word = '-'.join([word[i:i+max_length] for i in range(0, len(word), max_length)])
+                words.append(wrapped_word)
+            else:
+                words.append(word)
+        return ' '.join(words)
+
     def add_cover_page(
         self,
         title: str = "PizzaOps Performance Report",
@@ -504,9 +520,9 @@ def generate_recommendations_pdf(
 
                 for rec in priority_recs:
                     title = rec.get("title", "Recommendation")
-                    action = rec.get("action", "N/A")
-                    impact = rec.get("expected_impact", "N/A")
-                    evidence = rec.get("evidence", "Based on data analysis")
+                    action = pdf.wrap_long_words(rec.get("action", "N/A"))
+                    impact = pdf.wrap_long_words(rec.get("expected_impact", "N/A"))
+                    evidence = pdf.wrap_long_words(rec.get("evidence", "Based on data analysis"))
 
                     pdf.add_paragraph(f"{title}")
                     pdf.pdf.set_font('Helvetica', '', 10)
