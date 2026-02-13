@@ -62,7 +62,7 @@ recommendations = analytics.generate_recommendations(df)
 kpis = analytics.get_kpis(df)
 
 # Mode indicator
-mode_text = "Pro Mode (AI Available)" if is_pro_mode() else "Lite Mode (Offline)"
+mode_text = "Pro Mode (Smart Automation)" if is_pro_mode() else "Lite Mode (Offline)"
 st.caption(f"Mode: {mode_text}")
 
 spacer("1rem")
@@ -129,16 +129,16 @@ else:
 spacer("1.5rem")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# PRO MODE: AI-POWERED RECOMMENDATIONS
+# PRO MODE: SMART RECOMMENDATIONS
 # ══════════════════════════════════════════════════════════════════════════════
 if is_pro_mode():
-    st.markdown("### AI-Powered Insights")
+    st.markdown("### Smart Recommendations")
 
     if AI_AVAILABLE:
         # Show button only if budget available
         if check_budget_before_query("operations_analysis"):
-            if st.button("🤖 Get AI Recommendations", type="primary", use_container_width=True):
-                with st.spinner("AI is generating smart recommendations..."):
+            if st.button("⚡ Get Smart Recommendations", type="primary", use_container_width=True):
+                with st.spinner("Generating smart recommendations..."):
                     try:
                         agent = get_business_analyst_agent()
                         result = agent.analyze(df)
@@ -151,24 +151,24 @@ if is_pro_mode():
                             if result.cost > 0:
                                 get_budget_tracker().add_cost(result.cost)
 
-                            st.success(f"Generated {len(result.recommendations)} AI recommendations!")
+                            st.success(f"Generated {len(result.recommendations)} smart recommendations!")
                         elif result.success:
                             # AI returned but no recommendations
                             st.session_state.ai_analysis_content = result.content
-                            st.info("AI analysis complete. See insights below.")
+                            st.info("Analysis complete. See insights below.")
                         else:
-                            st.warning("AI couldn't generate additional recommendations")
+                            st.warning("Couldn't generate additional recommendations")
                     except Exception as e:
-                        st.error(f"AI error: {str(e)}")
+                        st.error(f"Error: {str(e)}")
 
         # Display AI content if available (outside budget check so it persists)
         if "ai_analysis_content" in st.session_state and st.session_state.ai_analysis_content:
-            with st.expander("AI Analysis Summary", expanded=False):
+            with st.expander("Analysis Summary", expanded=False):
                 st.markdown(st.session_state.ai_analysis_content)
 
         # Display AI recommendations if available (outside budget check so it persists)
         if "ai_recommendations" in st.session_state and st.session_state.ai_recommendations:
-            st.markdown("#### AI Recommendations")
+            st.markdown("#### Smart Recommendations")
 
             for rec in st.session_state.ai_recommendations[:5]:
                 priority = rec.get("priority", "medium")
@@ -187,17 +187,17 @@ if is_pro_mode():
                 impact_html = f'<p style="color: {text_muted}; margin: 0.5rem 0 0 0; font-size: 0.85rem;"><strong>Impact:</strong> {rec_impact}</p>' if rec_impact else ''
                 evidence_html = f'<p style="color: {text_muted}; margin: 0.25rem 0 0 0; font-size: 0.8rem; font-style: italic;">Evidence: {rec_evidence}</p>' if rec_evidence else ''
 
-                ai_rec_html = f'<div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 16px; padding: 1.25rem; margin-bottom: 0.75rem; backdrop-filter: blur(12px);"><div style="display: flex; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;"><span style="background: {p_bg}; color: {p_color}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid {p_color}40;">{priority.upper()}</span><strong style="color: {text_primary}; flex: 1;">{rec_title}</strong><span style="background: rgba(139, 92, 246, 0.2); color: {secondary_color}; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem;">🤖 AI</span></div><p style="color: {text_secondary}; margin: 0; line-height: 1.6;">{rec_action}</p>{impact_html}{evidence_html}</div>'
+                ai_rec_html = f'<div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 16px; padding: 1.25rem; margin-bottom: 0.75rem; backdrop-filter: blur(12px);"><div style="display: flex; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;"><span style="background: {p_bg}; color: {p_color}; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: bold; border: 1px solid {p_color}40;">{priority.upper()}</span><strong style="color: {text_primary}; flex: 1;">{rec_title}</strong><span style="background: rgba(139, 92, 246, 0.2); color: {secondary_color}; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem;">⚡ Smart</span></div><p style="color: {text_secondary}; margin: 0; line-height: 1.6;">{rec_action}</p>{impact_html}{evidence_html}</div>'
                 st.markdown(ai_rec_html, unsafe_allow_html=True)
 
-            if st.button("Clear AI Recommendations", key="clear_ai_recs"):
+            if st.button("Clear Recommendations", key="clear_ai_recs"):
                 if "ai_recommendations" in st.session_state:
                     del st.session_state.ai_recommendations
                 if "ai_analysis_content" in st.session_state:
                     del st.session_state.ai_analysis_content
                 st.rerun()
     else:
-        st.info("AI components not available. Configure API key in Settings.")
+        st.info("Smart automation not available. Configure API key in Settings.")
 
 spacer("1.5rem")
 
@@ -286,5 +286,5 @@ for item in checklist_items:
 # FOOTER
 # ══════════════════════════════════════════════════════════════════════════════
 spacer("2rem")
-footer_html = f'<div style="text-align: center; padding: 1.5rem; border-top: 1px solid rgba(59, 130, 246, 0.15);"><p style="color: {primary_color}; font-size: 0.85rem; margin: 0 0 0.25rem 0;">Recommendations generated by LocalAnalytics + AI (Pro mode)</p><p style="color: {text_muted}; font-size: 0.8rem; margin: 0;">Share your summary via WhatsApp for team coordination</p></div>'
+footer_html = f'<div style="text-align: center; padding: 1.5rem; border-top: 1px solid rgba(59, 130, 246, 0.15);"><p style="color: {primary_color}; font-size: 0.85rem; margin: 0 0 0.25rem 0;">Recommendations generated by Smart Analytics (Pro mode)</p><p style="color: {text_muted}; font-size: 0.8rem; margin: 0;">Share your summary via WhatsApp for team coordination</p></div>'
 st.markdown(footer_html, unsafe_allow_html=True)

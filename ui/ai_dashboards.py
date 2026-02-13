@@ -55,7 +55,7 @@ def render_quality_dashboard(
         <div style="display: flex; align-items: center;">
             <span style="font-size: 2rem; margin-right: 1rem;">🔬</span>
             <div>
-                <h3 style="color: {COLORS['text_primary']}; margin: 0;">AI Data Quality Analyst</h3>
+                <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Data Quality Analyst</h3>
                 <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
                     Intelligent data quality assessment with actionable insights
                 </p>
@@ -68,7 +68,7 @@ def render_quality_dashboard(
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: bold;
-        ">AI POWERED</span>
+        ">SMART AUTOMATION</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -163,12 +163,12 @@ def render_quality_dashboard(
 
     # Show AI content summary
     if quality_report.content:
-        with st.expander("AI Analysis Summary", expanded=False):
+        with st.expander("Analysis Summary", expanded=False):
             st.markdown(quality_report.content)
 
     # Cost display
     if quality_report.cost > 0:
-        st.caption(f"AI Analysis Cost: ${quality_report.cost:.4f}")
+        st.caption(f"Analysis Cost: ${quality_report.cost:.4f}")
 
 
 def render_fix_impact_simulation(
@@ -345,7 +345,7 @@ def render_business_analyst_dashboard(
         <div style="display: flex; align-items: center;">
             <span style="font-size: 2rem; margin-right: 1rem;">📊</span>
             <div>
-                <h3 style="color: {COLORS['text_primary']}; margin: 0;">AI Business Analyst Consultant</h3>
+                <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Business Analyst</h3>
                 <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
                     Prescriptive analytics with impact simulations
                 </p>
@@ -358,7 +358,7 @@ def render_business_analyst_dashboard(
             border-radius: 20px;
             font-size: 0.75rem;
             font-weight: bold;
-        ">AI POWERED</span>
+        ">SMART AUTOMATION</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -492,12 +492,12 @@ def render_business_analyst_dashboard(
 
     # AI Summary
     if operations_report.content:
-        with st.expander("AI Analysis Summary", expanded=False):
+        with st.expander("Analysis Summary", expanded=False):
             st.markdown(operations_report.content)
 
     # Cost display
     if operations_report.cost > 0:
-        st.caption(f"AI Analysis Cost: ${operations_report.cost:.4f}")
+        st.caption(f"Analysis Cost: ${operations_report.cost:.4f}")
 
 
 def render_recommendation_with_simulation(

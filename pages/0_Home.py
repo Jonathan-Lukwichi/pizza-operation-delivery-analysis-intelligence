@@ -85,7 +85,7 @@ def main():
                 "Pro",
                 type="primary" if pro_selected else "secondary",
                 use_container_width=True,
-                help="AI-powered analysis (requires API key)"
+                help="Smart automation (requires API key)"
             ):
                 set_mode("pro")
                 st.rerun()
@@ -94,7 +94,7 @@ def main():
         if is_lite_mode():
             st.caption("Works offline during load shedding")
         else:
-            st.caption("AI-powered insights enabled")
+            st.caption("Smart automation enabled")
 
         st.markdown("---")
 
@@ -103,7 +103,7 @@ def main():
             render_budget_widget()
             st.markdown("---")
 
-        # ── AI Status (Pro mode only) ──
+        # ── Automation Status (Pro mode only) ──
         if is_pro_mode() and AI_AVAILABLE:
             ai = get_ai_service()
             if ai.is_available():
@@ -118,7 +118,7 @@ def main():
                     padding: 0.5rem;
                     margin-bottom: 0.5rem;
                 ">
-                    <span style="color: {COLORS['success']}; font-size: 0.8rem;">🤖 AI Ready</span>
+                    <span style="color: {COLORS['success']}; font-size: 0.8rem;">✓ Automation Ready</span>
                 </div>
                 """, unsafe_allow_html=True)
             else:
@@ -133,10 +133,10 @@ def main():
                     padding: 0.5rem;
                     margin-bottom: 0.5rem;
                 ">
-                    <span style="color: {COLORS['warning']}; font-size: 0.8rem;">⚠️ Add API Key in Config</span>
+                    <span style="color: {COLORS['warning']}; font-size: 0.8rem;">⚠️ Configure Automation</span>
                 </div>
                 """, unsafe_allow_html=True)
-                if st.button("Configure API Key", use_container_width=True, type="secondary"):
+                if st.button("Configure Automation", use_container_width=True, type="secondary"):
                     st.switch_page("pages/1_Process Configuration.py")
             st.markdown("---")
 
@@ -437,9 +437,9 @@ def render_cleaning_tab():
             <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                 <span style="font-size: 2rem; margin-right: 1rem;">🔬</span>
                 <div>
-                    <h3 style="color: {COLORS['text_primary']}; margin: 0;">AI Data Quality Analyst</h3>
+                    <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Data Quality Analyst</h3>
                     <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                        Let AI examine your dataset and suggest cleaning actions
+                        Let automation examine your dataset and suggest cleaning actions
                     </p>
                 </div>
             </div>
@@ -447,8 +447,8 @@ def render_cleaning_tab():
 
         # Check budget before showing AI button
         if check_budget_before_query("data_quality"):
-            if st.button("🔬 Analyze Data Quality with AI", type="primary", use_container_width=True, key="ai_quality_btn"):
-                with st.spinner("AI is examining your data quality..."):
+            if st.button("🔬 Analyze Data Quality", type="primary", use_container_width=True, key="ai_quality_btn"):
+                with st.spinner("Analyzing your data quality..."):
                     try:
                         agent = get_data_quality_agent()
                         result = agent.analyze(df)
@@ -457,12 +457,12 @@ def render_cleaning_tab():
                         if result.cost > 0:
                             get_budget_tracker().add_cost(result.cost)
                     except Exception as e:
-                        st.error(f"AI analysis error: {str(e)}")
+                        st.error(f"Analysis error: {str(e)}")
 
         st.markdown("</div>", unsafe_allow_html=True)
     elif is_lite_mode():
         # Show local analysis option in Lite mode
-        st.info("Switch to Pro mode in the sidebar for AI-powered data quality analysis.")
+        st.info("Switch to Pro mode in the sidebar for smart data quality analysis.")
 
     # ══════════════════════════════════════════════════════════════════════════
     # AI QUALITY DASHBOARD (displays if report exists, regardless of mode)
@@ -1075,9 +1075,9 @@ def render_dashboard_tab():
             <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                 <span style="font-size: 2rem; margin-right: 1rem;">📊</span>
                 <div>
-                    <h3 style="color: {COLORS['text_primary']}; margin: 0;">AI Business Analyst Consultant</h3>
+                    <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Business Analyst</h3>
                     <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                        Let AI analyze your operations, find bottlenecks, and provide recommendations
+                        Analyze your operations, find bottlenecks, and get recommendations
                     </p>
                 </div>
             </div>
@@ -1085,8 +1085,8 @@ def render_dashboard_tab():
 
         # Check budget before showing AI button
         if check_budget_before_query("operations_analysis"):
-            if st.button("📊 Analyze Operations with AI", type="primary", use_container_width=True, key="ai_analyst_btn"):
-                with st.spinner("AI Business Analyst is analyzing your operations..."):
+            if st.button("📊 Analyze Operations", type="primary", use_container_width=True, key="ai_analyst_btn"):
+                with st.spinner("Analyzing your operations..."):
                     try:
                         agent = get_business_analyst_agent()
                         result = agent.analyze(df)
@@ -1095,7 +1095,7 @@ def render_dashboard_tab():
                         if result.cost > 0:
                             get_budget_tracker().add_cost(result.cost)
                     except Exception as e:
-                        st.error(f"AI analysis error: {str(e)}")
+                        st.error(f"Analysis error: {str(e)}")
 
         st.markdown("</div>", unsafe_allow_html=True)
     elif is_lite_mode():
@@ -1110,7 +1110,7 @@ def render_dashboard_tab():
         ">
             <h4 style="color: {COLORS['text_primary']}; margin: 0 0 0.5rem 0;">💡 Lite Mode Active</h4>
             <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                Using offline analytics. Switch to Pro mode for AI-powered insights.
+                Using offline analytics. Switch to Pro mode for smart automation.
             </p>
         </div>
         """, unsafe_allow_html=True)
@@ -1153,20 +1153,20 @@ def render_dashboard_tab():
     # Quick Ask Section (existing functionality)
     ai = get_ai_service()
     if ai.is_available():
-        st.markdown("### 💬 Quick Ask AI")
+        st.markdown("### 💬 Quick Ask")
 
         ai_col1, ai_col2 = st.columns([3, 1])
 
         with ai_col1:
             user_question = st.text_input(
-                "Ask AI about your data",
+                "Ask about your data",
                 placeholder="e.g., Why are complaints higher than target?",
                 label_visibility="collapsed",
                 key="home_ai_question"
             )
 
         with ai_col2:
-            ask_button = st.button("🤖 Ask AI", use_container_width=True, key="home_ask_ai")
+            ask_button = st.button("⚡ Ask", use_container_width=True, key="home_ask_ai")
 
         # Quick action buttons
         qa_col1, qa_col2, qa_col3, qa_col4 = st.columns(4)
@@ -1185,7 +1185,7 @@ def render_dashboard_tab():
 
         # Process question
         if (ask_button or user_question) and user_question:
-            with st.spinner("🤖 AI is thinking..."):
+            with st.spinner("Thinking..."):
                 response = ai.query(user_question, df)
                 if response.success:
                     st.markdown(f"""
@@ -1198,7 +1198,7 @@ def render_dashboard_tab():
                     ">
                         <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
                             <span style="font-size: 1.25rem; margin-right: 0.5rem;">🤖</span>
-                            <strong style="color: {COLORS['text_primary']};">AI Response</strong>
+                            <strong style="color: {COLORS['text_primary']};">Response</strong>
                             <span style="
                                 margin-left: auto;
                                 background: {COLORS['primary']}20;
@@ -1218,7 +1218,7 @@ def render_dashboard_tab():
 
         spacer("1rem")
 
-    st.markdown(f'<div style="background-color:{COLORS["bg_card"]};border-radius:12px;padding:1.5rem;border-left:4px solid {COLORS["primary"]};text-align:center;"><h3 style="color:{COLORS["text_primary"]};margin-bottom:0.5rem;">🚀 Analysis Ready</h3><p style="color:{COLORS["text_secondary"]};">Use the sidebar to navigate to other detailed analysis pages, or chat with AI on the 🤖 AI Assistant page.</p></div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="background-color:{COLORS["bg_card"]};border-radius:12px;padding:1.5rem;border-left:4px solid {COLORS["primary"]};text-align:center;"><h3 style="color:{COLORS["text_primary"]};margin-bottom:0.5rem;">🚀 Analysis Ready</h3><p style="color:{COLORS["text_secondary"]};">Use the sidebar to navigate to other detailed analysis pages.</p></div>', unsafe_allow_html=True)
     spacer("1.5rem")
 
     with st.expander("📋 Preview Final Data", expanded=False):

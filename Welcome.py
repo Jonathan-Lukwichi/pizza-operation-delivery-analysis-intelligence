@@ -578,7 +578,7 @@ st.markdown("""
     <p class="hero-tagline">Real-Time Operations Analytics</p>
     <div class="hero-row">
         <h1 class="hero-title">PizzaOps Intelligence</h1>
-        <p class="hero-description">Transform your pizza business with AI-powered insights, offline analytics, and instant team communication</p>
+        <p class="hero-description">Transform your pizza business with smart automation, offline analytics, and instant team communication</p>
     </div>
 </div>
 """, unsafe_allow_html=True)
@@ -667,7 +667,7 @@ with col1:
         <div class="feature-icon">💡</div>
         <h3 class="feature-title">Actions & Recommendations</h3>
         <p class="feature-desc">Get prioritized action items. Know exactly what to fix first for maximum impact on your business.</p>
-        <div class="feature-badge-teal">✓ AI-Powered Insights</div>
+        <div class="feature-badge-teal">✓ Smart Automation</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -724,7 +724,7 @@ with mode_col2:
     <div class="mode-card-cyan">
         <div class="mode-icon">🤖</div>
         <h3 class="mode-title-cyan">Pro Mode</h3>
-        <p class="mode-subtitle-cyan">AI-Powered</p>
+        <p class="mode-subtitle-cyan">Smart Automation</p>
         <div class="mode-list">
             <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Smart Recommendations</p>
             <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Deep Root Cause Analysis</p>

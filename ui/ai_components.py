@@ -40,7 +40,7 @@ def render_ai_status_badge():
                     border-radius: 50%;
                     margin-right: 0.5rem;
                 "></span>
-                AI Enabled
+                Automation Active
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -62,7 +62,7 @@ def render_ai_status_badge():
                     border-radius: 50%;
                     margin-right: 0.5rem;
                 "></span>
-                AI Offline
+                Offline Mode
             </div>
             """, unsafe_allow_html=True)
     except:
@@ -72,7 +72,7 @@ def render_ai_status_badge():
 def render_ai_insight_expander(
     df: pd.DataFrame,
     context: str = "overview",
-    title: str = "AI Insights"
+    title: str = "Smart Insights"
 ):
     """
     Render an expandable AI insights section.
@@ -90,8 +90,8 @@ def render_ai_insight_expander(
             return
 
         with st.expander(f"🤖 {title}", expanded=False):
-            if st.button("Generate AI Insights", key=f"ai_insight_{context}"):
-                with st.spinner("Analyzing with AI..."):
+            if st.button("Generate Insights", key=f"ai_insight_{context}"):
+                with st.spinner("Analyzing..."):
                     response = ai.generate_insights(df, context)
                     if response.success:
                         st.markdown(response.content)
@@ -120,19 +120,19 @@ def render_ai_ask_button(df: pd.DataFrame, default_question: str = ""):
         col1, col2 = st.columns([4, 1])
         with col1:
             question = st.text_input(
-                "Ask AI",
+                "Ask a question",
                 value=default_question,
                 placeholder="Ask a question about this data...",
                 label_visibility="collapsed"
             )
         with col2:
-            ask_clicked = st.button("🤖 Ask", use_container_width=True)
+            ask_clicked = st.button("⚡ Ask", use_container_width=True)
 
         if ask_clicked and question:
             with st.spinner("Thinking..."):
                 response = ai.query(question, df)
                 if response.success:
-                    st.markdown("### AI Response")
+                    st.markdown("### Response")
                     st.markdown(response.content)
                 else:
                     st.error(response.content)
@@ -196,7 +196,7 @@ def render_ai_metric_insight(
                 font-size: 0.85rem;
                 color: {COLORS['text_secondary']};
             ">
-                <strong style="color: {COLORS['warning']};">💡 AI Insight:</strong>
+                <strong style="color: {COLORS['warning']};">💡 Insight:</strong>
                 {st.session_state[cache_key]}
             </div>
             """, unsafe_allow_html=True)
@@ -228,7 +228,7 @@ def render_ai_recommendations_panel(df: pd.DataFrame):
         ">
             <div style="display: flex; align-items: center; margin-bottom: 1rem;">
                 <span style="font-size: 1.5rem; margin-right: 0.75rem;">🤖</span>
-                <h3 style="color: {COLORS['text_primary']}; margin: 0;">AI Recommendations</h3>
+                <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Recommendations</h3>
             </div>
         """, unsafe_allow_html=True)
 
@@ -283,12 +283,12 @@ def render_ai_chat_widget(df: Optional[pd.DataFrame] = None):
         ">
             <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
                 <span style="font-size: 1.25rem; margin-right: 0.5rem;">💬</span>
-                <strong style="color: {COLORS['text_primary']};">Quick Ask AI</strong>
+                <strong style="color: {COLORS['text_primary']};">Quick Ask</strong>
             </div>
         """, unsafe_allow_html=True)
 
         question = st.text_input(
-            "Ask AI",
+            "Ask a question",
             placeholder="Ask anything about your data...",
             label_visibility="collapsed",
             key="quick_ai_input"

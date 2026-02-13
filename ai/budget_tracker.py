@@ -147,11 +147,11 @@ class BudgetTracker:
         status = self.get_status()
 
         if status.is_over_budget:
-            return "Daily AI budget exceeded. Using offline mode."
+            return "Daily automation budget exceeded. Using offline mode."
         elif status.remaining_zar < 5:
             return f"Low budget: R{status.remaining_zar:.2f} remaining"
         else:
-            return f"R{status.remaining_zar:.2f} AI budget remaining"
+            return f"R{status.remaining_zar:.2f} automation budget remaining"
 
 
 # Singleton instance
@@ -195,7 +195,7 @@ def render_budget_widget():
         margin-bottom: 0.5rem;
     ">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <span style="color: {color}; font-size: 0.8rem; font-weight: bold;">AI Budget</span>
+            <span style="color: {color}; font-size: 0.8rem; font-weight: bold;">Automation Budget</span>
             <span style="color: {color}; font-size: 0.7rem;">{status_text}</span>
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
@@ -239,7 +239,7 @@ def check_budget_before_query(operation: str = "quick_query") -> bool:
     tracker = get_budget_tracker()
 
     if not tracker.has_budget():
-        st.warning("Daily AI budget exceeded. Switching to offline analysis.")
+        st.warning("Daily automation budget exceeded. Switching to offline analysis.")
         return False
 
     if tracker.should_warn():

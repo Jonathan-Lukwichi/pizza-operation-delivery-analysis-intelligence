@@ -207,10 +207,10 @@ with st.expander("Pipeline Stages", expanded=False):
             st.markdown("---")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# AI API KEY CONFIGURATION
+# AUTOMATION API KEY CONFIGURATION
 # ══════════════════════════════════════════════════════════════════════════════
-with st.expander("AI API Key (Pro Mode)", expanded=False):
-    st.markdown("Configure your Anthropic API key for AI-powered features")
+with st.expander("Automation Settings (Pro Mode)", expanded=False):
+    st.markdown("Configure your API key for smart automation features")
 
     # Check current API key status
     import os
@@ -228,7 +228,7 @@ with st.expander("AI API Key (Pro Mode)", expanded=False):
         st.info("API key configured for this session only")
         key_source = "session"
     else:
-        st.warning("No API key configured - AI features disabled")
+        st.warning("No API key configured - automation features disabled")
         key_source = None
 
     st.markdown("---")
@@ -248,7 +248,7 @@ with st.expander("AI API Key (Pro Mode)", expanded=False):
         if st.button("💾 Save API Key (Session)", use_container_width=True):
             if new_api_key and new_api_key.startswith("sk-"):
                 st.session_state.user_api_key = new_api_key
-                st.success("API key saved! AI features now available.")
+                st.success("API key saved! Automation features now available.")
                 st.rerun()
             elif new_api_key:
                 st.error("Invalid API key format. Should start with 'sk-'")
@@ -279,10 +279,10 @@ with st.expander("AI API Key (Pro Mode)", expanded=False):
     """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# AI BUDGET (PRO MODE)
+# AUTOMATION BUDGET (PRO MODE)
 # ══════════════════════════════════════════════════════════════════════════════
-with st.expander("AI Budget (Pro Mode)", expanded=False):
-    st.markdown("Control your AI spending in South African Rand")
+with st.expander("Automation Budget (Pro Mode)", expanded=False):
+    st.markdown("Control your automation spending in South African Rand")
 
     col1, col2 = st.columns(2)
 
@@ -293,7 +293,7 @@ with st.expander("AI Budget (Pro Mode)", expanded=False):
             max_value=500.0,
             value=config.daily_budget_zar,
             step=10.0,
-            help="Set to 0 to disable AI features"
+            help="Set to 0 to disable automation features"
         )
         st.caption("R50 is approximately $2.70 USD")
 
@@ -314,7 +314,7 @@ with st.expander("AI Budget (Pro Mode)", expanded=False):
 # MODE SELECTION - NEON STYLE
 # ══════════════════════════════════════════════════════════════════════════════
 with st.expander("App Mode", expanded=False):
-    st.markdown("Choose between Lite (offline) and Pro (AI-powered) modes")
+    st.markdown("Choose between Lite (offline) and Pro (smart automation) modes")
 
     current_mode = get_mode()
 
@@ -361,7 +361,7 @@ with st.expander("App Mode", expanded=False):
         ">
             <h4 style="color: {COLORS['secondary']}; margin: 0 0 0.75rem 0;">🤖 Pro Mode</h4>
             <ul style="color: {COLORS['text_secondary']}; font-size: 0.85rem; padding-left: 1.25rem; margin: 0; line-height: 1.8;">
-                <li>AI-powered insights</li>
+                <li>Smart automation</li>
                 <li>Smart recommendations</li>
                 <li>Root cause analysis</li>
                 <li>Budget controlled (ZAR)</li>
