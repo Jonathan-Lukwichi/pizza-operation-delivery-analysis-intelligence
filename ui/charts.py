@@ -582,15 +582,15 @@ def priority_matrix_chart(
 
     fig = go.Figure()
 
-    # Add quadrant background shapes
+    # Add quadrant background shapes (using rgba for opacity)
     fig.add_shape(type="rect", x0=0, y0=5, x1=5, y1=10,
-                  fillcolor=f"{COLORS['success']}15", line_width=0)  # Quick wins
+                  fillcolor="rgba(34, 197, 94, 0.1)", line_width=0)  # Quick wins (green)
     fig.add_shape(type="rect", x0=5, y0=5, x1=10, y1=10,
-                  fillcolor=f"{COLORS['primary']}15", line_width=0)  # Strategic
+                  fillcolor="rgba(139, 92, 246, 0.1)", line_width=0)  # Strategic (purple)
     fig.add_shape(type="rect", x0=0, y0=0, x1=5, y1=5,
-                  fillcolor=f"{COLORS['warning']}15", line_width=0)  # Fill-in
+                  fillcolor="rgba(245, 158, 11, 0.1)", line_width=0)  # Fill-in (orange)
     fig.add_shape(type="rect", x0=5, y0=0, x1=10, y1=5,
-                  fillcolor=f"{COLORS['danger']}15", line_width=0)  # Avoid
+                  fillcolor="rgba(239, 68, 68, 0.1)", line_width=0)  # Avoid (red)
 
     # Add quadrant lines
     fig.add_hline(y=5, line_dash="dash", line_color=COLORS["border"], opacity=0.5)
