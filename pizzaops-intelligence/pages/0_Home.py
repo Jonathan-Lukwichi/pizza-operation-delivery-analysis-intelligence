@@ -137,7 +137,7 @@ def main():
                 </div>
                 """, unsafe_allow_html=True)
                 if st.button("Configure API Key", use_container_width=True, type="secondary"):
-                    st.switch_page("pages/2_Process Configuration.py")
+                    st.switch_page("pages/1_Process Configuration.py")
             st.markdown("---")
 
         # ── Data Status ──
