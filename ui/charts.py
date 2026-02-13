@@ -12,6 +12,14 @@ from typing import Optional, List
 from ui.theme import COLORS, PLOTLY_TEMPLATE, apply_plotly_theme
 
 
+def hex_to_rgba(hex_color, alpha=0.25):
+    """Convert hex color to rgba string."""
+    hex_color = hex_color.lstrip('#')
+    r, g, b = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+    return f'rgba({r}, {g}, {b}, {alpha})'
+
+
+
 def line_chart(
     df: pd.DataFrame,
     x: str,
@@ -1016,7 +1024,7 @@ def kpi_gauge_with_target(
         if level in thresholds:
             low, high = thresholds[level]
             color = COLORS.get(level, COLORS["text_muted"])
-            steps.append({"range": [low, high], "color": f"{color}40"})
+            steps.append({"range": [low, high], "color": hex_to_rgba(color, 0.25)})
 
     fig = go.Figure(go.Indicator(
         mode="gauge+number+delta",
