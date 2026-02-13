@@ -1,0 +1,56 @@
+# AI Agent System Requirements
+# ============================
+
+# LLM & Agent Frameworks
+langchain>=0.1.0
+langgraph>=0.0.20
+anthropic>=0.18.0          # Claude API
+openai>=1.12.0             # OpenAI fallback
+
+# Vector Database & Embeddings
+chromadb>=0.4.22
+sentence-transformers>=2.3.0
+
+# Async & Concurrency
+asyncio-redis>=0.16.0
+aiohttp>=3.9.0
+celery>=5.3.0              # Task queue
+redis>=5.0.0               # Caching & pub/sub
+
+# Data Processing (already in main requirements)
+pandas>=2.1.0
+numpy>=1.24.0
+
+# ML & Forecasting (already in main requirements)
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+prophet>=1.1.5
+statsmodels>=0.14.0
+
+# Causal Inference & Explainability
+dowhy>=0.11.0              # Causal inference
+shap>=0.44.0               # Model explainability
+
+# Communication APIs
+twilio>=8.12.0             # SMS & WhatsApp
+sendgrid>=6.11.0           # Email
+slack-sdk>=3.27.0          # Slack
+
+# Optimization
+ortools>=9.8.0             # Google OR-Tools for scheduling
+pulp>=2.7.0                # Linear programming
+
+# Monitoring & Observability
+prometheus-client>=0.19.0
+opentelemetry-api>=1.22.0
+opentelemetry-sdk>=1.22.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+pytest-mock>=3.12.0
+
+# Development
+black>=24.1.0
+ruff>=0.2.0
+mypy>=1.8.0
