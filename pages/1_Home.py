@@ -17,7 +17,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from data.loader import load_and_validate, get_summary_stats
 from data.transformer import transform_data
 from ui.theme import COLORS, CUSTOM_CSS
-from ui.layout import page_header, spacer, footer
+from ui.layout import (
+    page_header, spacer, footer,
+    render_dashboard_header, render_section_title, inject_custom_css
+)
 from ui.metrics_cards import render_kpi_card
 from ui.charts import (
     bar_chart, box_plot, donut_chart, heatmap, scatter_plot,

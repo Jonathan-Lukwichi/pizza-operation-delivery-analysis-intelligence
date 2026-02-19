@@ -382,3 +382,378 @@ def glass_card(content: str, title: str = ""):
         <div style="color: {COLORS["text_secondary"]};">{content}</div>
     </div>
     ''', unsafe_allow_html=True)
+
+
+def render_dashboard_header(
+    title: str,
+    logo_text: str = "P",
+    logo_color: str = None,
+    is_live: bool = True,
+    live_text: str = "LIVE DASHBOARD"
+):
+    """
+    Render a professional dashboard header with logo badge and live indicator.
+    Inspired by HealthForecast AI design.
+
+    Args:
+        title: Main title text
+        logo_text: Single letter for logo badge
+        logo_color: Color for the logo (default: primary)
+        is_live: Whether to show live indicator
+        live_text: Text for live indicator
+    """
+    inject_custom_css()
+
+    if logo_color is None:
+        logo_color = COLORS["primary"]
+
+    live_html = ""
+    if is_live:
+        live_html = f'''
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 229, 160, 0.1);
+            border: 1px solid rgba(0, 229, 160, 0.3);
+            border-radius: 20px;
+            padding: 0.35rem 1rem;
+        ">
+            <div style="
+                width: 8px;
+                height: 8px;
+                background: {COLORS["success"]};
+                border-radius: 50%;
+                animation: pulse-glow 2s ease-in-out infinite;
+                box-shadow: 0 0 8px {COLORS["success"]};
+            "></div>
+            <span style="
+                color: {COLORS["success"]};
+                font-size: 0.7rem;
+                font-weight: 600;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+            ">{live_text}</span>
+        </div>
+        '''
+
+    header_html = f'''
+    <style>
+        @keyframes pulse-glow {{
+            0%, 100% {{ opacity: 1; transform: scale(1); }}
+            50% {{ opacity: 0.6; transform: scale(1.1); }}
+        }}
+    </style>
+    <div style="
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid rgba(0, 180, 255, 0.15);
+    ">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="
+                width: 56px;
+                height: 56px;
+                background: linear-gradient(135deg, {logo_color} 0%, {COLORS["secondary"]} 100%);
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.75rem;
+                font-weight: 800;
+                color: white;
+                box-shadow: 0 8px 25px rgba(0, 180, 255, 0.3);
+                border: 2px solid rgba(255, 255, 255, 0.1);
+            ">{logo_text}</div>
+            <div>
+                <h1 style="
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    color: {COLORS["text_primary"]};
+                    margin: 0;
+                    line-height: 1.2;
+                ">{title}</h1>
+                <p style="
+                    color: {COLORS["text_muted"]};
+                    font-size: 0.85rem;
+                    margin: 0.25rem 0 0 0;
+                ">Real-time operational insights</p>
+            </div>
+        </div>
+        {live_html}
+    </div>
+    '''
+    st.markdown(header_html, unsafe_allow_html=True)
+
+
+def render_status_row(statuses: list):
+    """
+    Render a row of status indicators (like tabs but visual only).
+
+    Args:
+        statuses: List of (label, icon, is_active, color) tuples
+    """
+    items_html = ""
+    for label, icon, is_active, color in statuses:
+        if color is None:
+            color = COLORS["primary"]
+
+        if is_active:
+            bg = f"rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.15)"
+            border = f"rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.4)"
+            text_color = color
+            glow = f"0 0 15px rgba({int(color[1:3], 16)}, {int(color[3:5], 16)}, {int(color[5:7], 16)}, 0.3)"
+        else:
+            bg = "rgba(10, 25, 60, 0.4)"
+            border = "rgba(0, 180, 255, 0.12)"
+            text_color = COLORS["text_muted"]
+            glow = "none"
+
+        items_html += f'''
+        <div style="
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1rem;
+            background: {bg};
+            border: 1px solid {border};
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            box-shadow: {glow};
+        ">
+            <span style="font-size: 1rem;">{icon}</span>
+            <span style="
+                color: {text_color};
+                font-size: 0.75rem;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+            ">{label}</span>
+        </div>
+        '''
+
+    st.markdown(f'''
+    <div style="
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    ">{items_html}</div>
+    ''', unsafe_allow_html=True)
+
+
+def render_section_title(title: str, subtitle: str = "", icon: str = ""):
+    """
+    Render an enhanced section title with optional icon and subtitle.
+    """
+    icon_html = f'<span style="margin-right: 0.5rem;">{icon}</span>' if icon else ""
+    subtitle_html = f'<p style="color: {COLORS["text_muted"]}; font-size: 0.85rem; margin: 0.25rem 0 0 0;">{subtitle}</p>' if subtitle else ""
+
+    st.markdown(f'''
+    <div style="margin: 2rem 0 1.25rem 0;">
+        <h3 style="
+            color: {COLORS["text_primary"]};
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        ">
+            {icon_html}
+            {title}
+        </h3>
+        {subtitle_html}
+    </div>
+    ''', unsafe_allow_html=True)
+
+
+def render_feature_card(
+    title: str,
+    description: str,
+    icon: str,
+    color: str = None,
+    badge_text: str = ""
+):
+    """
+    Render a feature card with icon badge - inspired by HealthForecast design.
+
+    Args:
+        title: Card title
+        description: Card description
+        icon: Emoji icon
+        color: Accent color
+        badge_text: Optional badge text
+    """
+    if color is None:
+        color = COLORS["primary"]
+
+    badge_html = ""
+    if badge_text:
+        badge_html = f'''
+        <div style="
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: {color}20;
+            color: {color};
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border: 1px solid {color}40;
+        ">{badge_text}</div>
+        '''
+
+    st.markdown(f'''
+    <div style="
+        background: rgba(10, 25, 60, 0.6);
+        backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 1.75rem;
+        border: 1px solid rgba(0, 180, 255, 0.12);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s ease;
+        height: 100%;
+    " onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 15px 40px rgba(0, 180, 255, 0.15)'; this.style.borderColor='rgba(0, 180, 255, 0.3)';"
+       onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'; this.style.borderColor='rgba(0, 180, 255, 0.12)';">
+        <div style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, {color}, {COLORS["secondary"]});
+        "></div>
+        {badge_html}
+        <div style="
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, {color}20 0%, {color}10 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid {color}30;
+        ">{icon}</div>
+        <h4 style="
+            color: {COLORS["text_primary"]};
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        ">{title}</h4>
+        <p style="
+            color: {COLORS["text_secondary"]};
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin: 0;
+        ">{description}</p>
+    </div>
+    ''', unsafe_allow_html=True)
+
+
+def render_glowing_button_html(text: str, icon: str = "", is_primary: bool = True):
+    """
+    Generate HTML for a glowing CTA button (visual only - use with st.button for functionality).
+    """
+    if is_primary:
+        bg = f"linear-gradient(90deg, {COLORS['primary']} 0%, {COLORS['secondary']} 100%)"
+        shadow = f"0 4px 20px rgba(0, 180, 255, 0.4)"
+    else:
+        bg = "transparent"
+        shadow = "none"
+
+    icon_html = f'<span style="margin-right: 0.5rem;">{icon}</span>' if icon else ""
+
+    return f'''
+    <div style="
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.875rem 2rem;
+        background: {bg};
+        border: {"none" if is_primary else f"1px solid {COLORS['primary']}"};
+        border-radius: 25px;
+        color: {"white" if is_primary else COLORS["primary"]};
+        font-weight: 600;
+        font-size: 0.9rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        box-shadow: {shadow};
+        cursor: pointer;
+        transition: all 0.3s ease;
+    ">
+        {icon_html}{text}
+    </div>
+    '''
+
+
+def render_metric_with_icon(
+    label: str,
+    value: str,
+    icon: str,
+    color: str = None,
+    subtitle: str = ""
+):
+    """
+    Render a metric card with a prominent icon.
+    """
+    if color is None:
+        color = COLORS["primary"]
+
+    subtitle_html = f'<div style="color: {COLORS["text_muted"]}; font-size: 0.7rem; margin-top: 0.25rem;">{subtitle}</div>' if subtitle else ""
+
+    st.markdown(f'''
+    <div style="
+        background: rgba(10, 25, 60, 0.6);
+        backdrop-filter: blur(12px);
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid rgba(0, 180, 255, 0.12);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+    ">
+        <div style="
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, {color}20 0%, {color}10 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            border: 1px solid {color}30;
+            flex-shrink: 0;
+        ">{icon}</div>
+        <div style="flex: 1; min-width: 0;">
+            <div style="
+                color: {COLORS["text_muted"]};
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                margin-bottom: 0.25rem;
+            ">{label}</div>
+            <div style="
+                color: {COLORS["text_primary"]};
+                font-size: 1.35rem;
+                font-weight: 700;
+                line-height: 1.1;
+            ">{value}</div>
+            {subtitle_html}
+        </div>
+        <div style="
+            width: 4px;
+            height: 40px;
+            background: linear-gradient(180deg, {color}, transparent);
+            border-radius: 2px;
+        "></div>
+    </div>
+    ''', unsafe_allow_html=True)

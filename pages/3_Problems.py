@@ -16,7 +16,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import get_config
 from core.local_analytics import get_local_analytics
-from ui.layout import page_header, spacer, render_empty_state
+from ui.layout import (
+    page_header, spacer, render_empty_state,
+    render_dashboard_header, render_status_row, render_section_title,
+    inject_custom_css
+)
 from ui.theme import COLORS, apply_plotly_theme
 from ui.filters import render_global_filters, apply_filters
 
@@ -25,10 +29,17 @@ from ui.filters import render_global_filters, apply_filters
 st.set_page_config(page_title="Problems | PizzaOps", page_icon="🔍", layout="wide")
 
 config = get_config()
-page_header(
+
+# Inject CSS first
+inject_custom_css()
+
+# Professional dashboard header
+render_dashboard_header(
     title="Problems & Issues",
-    icon="🔍",
-    description="Identify bottlenecks, performance gaps, and root causes"
+    logo_text="!",
+    logo_color=COLORS["warning"],
+    is_live=True,
+    live_text="ISSUE DETECTION"
 )
 
 # ── Guard: Check Data Loaded ──
@@ -59,19 +70,39 @@ df_filtered = apply_filters(df, filters)
 
 # Get local analytics (works offline)
 analytics = get_local_analytics()
+bottlenecks = analytics.detect_bottlenecks(df_filtered)
 
-# Data indicator
-st.caption(f"Analyzing {len(df_filtered):,} orders")
+# Status indicators row
+render_status_row([
+    ("Bottlenecks", "🚧", len(bottlenecks) > 0, COLORS["danger"] if len(bottlenecks) > 0 else COLORS["success"]),
+    ("Areas", "📍", True, COLORS["warning"]),
+    ("Staff", "👥", True, COLORS["primary"]),
+    ("Complaints", "⚠️", True, COLORS["danger"]),
+])
 
-spacer("1rem")
+# Data indicator with styled badge
+st.markdown(f'''
+<div style="
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(10, 25, 60, 0.6);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 180, 255, 0.15);
+    margin-bottom: 1rem;
+">
+    <span style="color: {COLORS["text_muted"]}; font-size: 0.8rem;">Analyzing</span>
+    <span style="color: {COLORS["primary"]}; font-weight: 700; font-size: 0.9rem;">{len(df_filtered):,} orders</span>
+</div>
+''', unsafe_allow_html=True)
+
+spacer("0.5rem")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BOTTLENECKS SECTION
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("### Pipeline Bottlenecks")
-st.markdown("Stages that are slower than benchmarks:")
-
-bottlenecks = analytics.detect_bottlenecks(df_filtered)
+render_section_title("Pipeline Bottlenecks", "Stages that are slower than benchmarks", "🚧")
 
 if bottlenecks:
     for i, bottleneck in enumerate(bottlenecks):
@@ -122,7 +153,7 @@ spacer("1.5rem")
 # ══════════════════════════════════════════════════════════════════════════════
 # AREA PERFORMANCE ISSUES
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("### Area Performance Issues")
+render_section_title("Area Performance Issues", "Delivery areas with performance gaps", "📍")
 
 area_performance = analytics.get_area_performance(df_filtered)
 
@@ -218,7 +249,7 @@ spacer("1.5rem")
 # ══════════════════════════════════════════════════════════════════════════════
 # STAFF PERFORMANCE GAPS
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("### Staff Performance Gaps")
+render_section_title("Staff Performance Gaps", "Team members needing support", "👥")
 
 # Check for staff columns
 staff_cols = ["chef_name", "driver_name", "delivery_driver", "dough_prep_staff", "stylist", "oven_operator"]
@@ -284,7 +315,7 @@ spacer("1.5rem")
 # ══════════════════════════════════════════════════════════════════════════════
 # COMPLAINT PATTERNS
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("### Complaint Patterns")
+render_section_title("Complaint Patterns", "Customer feedback analysis", "⚠️")
 
 if "complaint" in df_filtered.columns:
     kpis = analytics.get_kpis(df_filtered)
@@ -329,17 +360,37 @@ spacer("1.5rem")
 # FOOTER
 # ══════════════════════════════════════════════════════════════════════════════
 spacer("2rem")
-st.markdown(f"""
+st.markdown(f'''
 <div style="
     text-align: center;
-    padding: 1.5rem;
-    border-top: 1px solid rgba(59, 130, 246, 0.15);
+    padding: 2rem;
+    border-top: 1px solid rgba(0, 180, 255, 0.15);
+    position: relative;
 ">
-    <p style="color: {COLORS['secondary']}; font-size: 0.85rem; margin: 0 0 0.25rem 0;">
-        Problem detection powered by LocalAnalytics
+    <div style="
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, {COLORS["warning"]}, {COLORS["danger"]});
+        border-radius: 2px;
+    "></div>
+    <p style="
+        color: {COLORS['warning']};
+        font-size: 0.85rem;
+        margin: 0 0 0.5rem 0;
+        font-weight: 500;
+    ">
+        Issue Detection Engine
     </p>
-    <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin: 0;">
-        Navigate to Actions page for recommendations
+    <p style="
+        color: {COLORS['text_muted']};
+        font-size: 0.75rem;
+        margin: 0;
+    ">
+        Navigate to <strong style="color: {COLORS["text_secondary"]};">Actions</strong> for recommended solutions
     </p>
 </div>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)

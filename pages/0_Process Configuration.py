@@ -16,17 +16,43 @@ from core.config import (
     get_config, save_config, BusinessConfig, StageConfig,
     export_config_json, import_config_json
 )
-from ui.layout import page_header, spacer
+from ui.layout import (
+    page_header, spacer,
+    render_dashboard_header, render_section_title, inject_custom_css
+)
 from ui.theme import COLORS
 
 # ── Page Config ──
 st.set_page_config(page_title="Process Configuration | PizzaOps", page_icon="⚙️", layout="wide")
 
-page_header(
+# Inject CSS first
+inject_custom_css()
+
+# Professional dashboard header
+render_dashboard_header(
     title="Process Configuration",
-    icon="⚙️",
-    description="Define your delivery targets and thresholds before detecting problems"
+    logo_text="⚙",
+    logo_color=COLORS["secondary"],
+    is_live=False,
+    live_text=""
 )
+
+# Description with styled box
+st.markdown(f'''
+<div style="
+    background: rgba(10, 25, 60, 0.6);
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-left: 4px solid {COLORS["secondary"]};
+    border-radius: 0 12px 12px 0;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+">
+    <p style="color: {COLORS["text_secondary"]}; margin: 0; font-size: 0.9rem;">
+        <strong style="color: {COLORS["secondary"]};">Important:</strong>
+        Configure your delivery targets and thresholds before analyzing data for accurate problem detection.
+    </p>
+</div>
+''', unsafe_allow_html=True)
 
 # Get current config
 config = get_config()

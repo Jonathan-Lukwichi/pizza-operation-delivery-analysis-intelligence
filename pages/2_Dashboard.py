@@ -15,7 +15,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import get_config
 from core.local_analytics import get_local_analytics
-from ui.layout import page_header, spacer, footer, render_empty_state
+from ui.layout import (
+    page_header, spacer, footer, render_empty_state,
+    render_dashboard_header, render_status_row, render_section_title,
+    inject_custom_css
+)
 from ui.metrics_cards import render_kpi_card
 from ui.theme import COLORS, apply_plotly_theme
 from ui.filters import render_global_filters, apply_filters
@@ -25,10 +29,17 @@ from ui.filters import render_global_filters, apply_filters
 st.set_page_config(page_title="Dashboard | PizzaOps", page_icon="📊", layout="wide")
 
 config = get_config()
-page_header(
-    title="Dashboard",
-    icon="📊",
-    description=f"Operational overview for {config.business_name}"
+
+# Inject CSS first
+inject_custom_css()
+
+# Professional dashboard header with logo badge
+render_dashboard_header(
+    title="PizzaOps Dashboard",
+    logo_text="P",
+    logo_color=COLORS["pizza_orange"],
+    is_live=True,
+    live_text="LIVE ANALYTICS"
 )
 
 # ── Guard: Check Data Loaded ──
@@ -61,14 +72,38 @@ df_filtered = apply_filters(df, filters)
 analytics = get_local_analytics()
 kpis = analytics.get_kpis(df_filtered)
 
-# Data indicator
-st.caption(f"Analyzing {len(df_filtered):,} orders")
+# Status indicators row
+render_status_row([
+    ("Overview", "📊", True, COLORS["primary"]),
+    ("Performance", "⚡", False, COLORS["success"]),
+    ("Trends", "📈", False, COLORS["warning"]),
+    ("Alerts", "🔔", len(analytics.generate_alerts(df_filtered)) > 0, COLORS["danger"] if len(analytics.generate_alerts(df_filtered)) > 0 else None),
+])
 
-spacer("1rem")
+# Data indicator with styled badge
+st.markdown(f'''
+<div style="
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(10, 25, 60, 0.6);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 180, 255, 0.15);
+    margin-bottom: 1rem;
+">
+    <span style="color: {COLORS["text_muted"]}; font-size: 0.8rem;">Analyzing</span>
+    <span style="color: {COLORS["primary"]}; font-weight: 700; font-size: 0.9rem;">{len(df_filtered):,} orders</span>
+</div>
+''', unsafe_allow_html=True)
+
+spacer("0.5rem")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# NEON KPI CARDS
+# KEY PERFORMANCE INDICATORS
 # ══════════════════════════════════════════════════════════════════════════════
+render_section_title("Key Metrics", "Real-time operational KPIs", "📊")
+
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -123,7 +158,7 @@ spacer("1.5rem")
 # ══════════════════════════════════════════════════════════════════════════════
 # ALERTS SECTION
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("### Alerts")
+render_section_title("Active Alerts", "Issues requiring attention", "🔔")
 
 alerts = analytics.generate_alerts(df_filtered)
 
@@ -177,7 +212,7 @@ spacer("1.5rem")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.markdown("### Stage Performance")
+    render_section_title("Stage Performance", "Time by production stage")
 
     stage_breakdown = analytics.get_stage_breakdown(df_filtered)
 
@@ -220,7 +255,7 @@ with col1:
         st.info("Stage data not available")
 
 with col2:
-    st.markdown("### Area Performance")
+    render_section_title("Area Performance", "Delivery time by area")
 
     area_performance = analytics.get_area_performance(df_filtered)
 
@@ -261,7 +296,7 @@ spacer("1.5rem")
 # ══════════════════════════════════════════════════════════════════════════════
 # TREND CHART (Last 7 Days)
 # ══════════════════════════════════════════════════════════════════════════════
-st.markdown("### 7-Day Trend")
+render_section_title("7-Day Trend", "Order volume and on-time performance", "📈")
 
 trend_data = analytics.get_trend_data(df_filtered, days=7)
 
@@ -306,17 +341,38 @@ else:
 # FOOTER
 # ══════════════════════════════════════════════════════════════════════════════
 spacer("2rem")
-st.markdown(f"""
+st.markdown(f'''
 <div style="
     text-align: center;
-    padding: 1.5rem;
-    border-top: 1px solid rgba(59, 130, 246, 0.15);
+    padding: 2rem;
+    border-top: 1px solid rgba(0, 180, 255, 0.15);
+    position: relative;
 ">
-    <p style="color: {COLORS['primary']}; font-size: 0.85rem; margin: 0 0 0.25rem 0;">
-        Dashboard powered by automated analytics - works offline!
+    <div style="
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, {COLORS["primary"]}, {COLORS["secondary"]});
+        border-radius: 2px;
+    "></div>
+    <p style="
+        color: {COLORS['primary']};
+        font-size: 0.85rem;
+        margin: 0 0 0.5rem 0;
+        font-weight: 500;
+    ">
+        Powered by Local Analytics Engine
     </p>
-    <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin: 0;">
-        Navigate to Problems or Actions for deeper analysis.
+    <p style="
+        color: {COLORS['text_muted']};
+        font-size: 0.75rem;
+        margin: 0;
+    ">
+        Navigate to <strong style="color: {COLORS["text_secondary"]};">Problems</strong> or
+        <strong style="color: {COLORS["text_secondary"]};">Actions</strong> for deeper insights
     </p>
 </div>
-""", unsafe_allow_html=True)
+''', unsafe_allow_html=True)

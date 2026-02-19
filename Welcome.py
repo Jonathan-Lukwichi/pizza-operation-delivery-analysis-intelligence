@@ -104,6 +104,48 @@ st.markdown("""
     backdrop-filter: blur(12px);
 }
 
+/* ===== GLOWING CTA BUTTON ===== */
+.glow-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem 2.5rem;
+    background: linear-gradient(90deg, #00b4ff 0%, #00e5ff 100%);
+    border: none;
+    border-radius: 50px;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow:
+        0 4px 20px rgba(0, 180, 255, 0.4),
+        0 0 40px rgba(0, 180, 255, 0.2);
+    animation: pulse-cta 2s ease-in-out infinite;
+}
+
+.glow-cta:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow:
+        0 6px 30px rgba(0, 180, 255, 0.5),
+        0 0 60px rgba(0, 180, 255, 0.3);
+}
+
+@keyframes pulse-cta {
+    0%, 100% {
+        box-shadow:
+            0 4px 20px rgba(0, 180, 255, 0.4),
+            0 0 40px rgba(0, 180, 255, 0.2);
+    }
+    50% {
+        box-shadow:
+            0 6px 30px rgba(0, 180, 255, 0.5),
+            0 0 60px rgba(0, 180, 255, 0.3);
+    }
+}
+
 .hero-divider {
     width: 120px;
     height: 3px;
@@ -757,10 +799,44 @@ st.markdown("""
 # ══════════════════════════════════════════════════════════════════════════════
 cta_col1, cta_col2, cta_col3 = st.columns([1, 3, 1])
 with cta_col2:
-    st.markdown("""
-    <div class="cta-container">
-        <h2 class="cta-title">Ready to Transform Your Operations?</h2>
-        <p class="cta-desc">Upload your data and get instant insights. No technical knowledge required.</p>
+    st.markdown(f"""
+    <div style="
+        text-align: center;
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, rgba(0, 180, 255, 0.08) 0%, rgba(0, 229, 255, 0.05) 100%);
+        border-radius: 20px;
+        border: 1px solid rgba(0, 180, 255, 0.2);
+        margin: 1.5rem auto;
+        backdrop-filter: blur(12px);
+        position: relative;
+        overflow: hidden;
+    ">
+        <div style="
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00b4ff, #00e5ff, #00b4ff, transparent);
+        "></div>
+        <h2 style="
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ffffff 0%, #00b4ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 0 0 1rem 0;
+        ">Ready to Transform Your Operations?</h2>
+        <p style="
+            color: #a8c4e0;
+            font-size: 1.1rem;
+            margin: 0 0 0.5rem 0;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        ">Upload your data and get instant insights.<br>No technical knowledge required.</p>
     </div>
     """, unsafe_allow_html=True)
 
