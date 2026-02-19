@@ -37,7 +37,7 @@ if "df" not in st.session_state or st.session_state.df is None:
         message="Upload data to get actionable recommendations",
         icon="⚡",
         cta_text="Upload Data",
-        cta_page="0_Home"
+        cta_page="1_Home"
     )
     st.stop()
 
@@ -47,7 +47,7 @@ if not st.session_state.get("data_is_clean", False):
         message="Complete data validation to generate actions",
         icon="🧹",
         cta_text="Clean Data",
-        cta_page="0_Home"
+        cta_page="1_Home"
     )
     st.stop()
 

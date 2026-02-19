@@ -767,12 +767,12 @@ with cta_col2:
     st.markdown('<div class="spacer-1"></div>', unsafe_allow_html=True)
 
     if st.button("🚀 Get Started Now", type="primary", use_container_width=True):
-        st.switch_page("pages/0_Home.py")
+        st.switch_page("pages/1_Home.py")
 
     st.markdown('<div class="spacer-1"></div>', unsafe_allow_html=True)
 
     if st.button("📖 Learn How It Works", type="secondary", use_container_width=True):
-        st.switch_page("pages/0_Home.py")
+        st.switch_page("pages/1_Home.py")
 
 st.markdown('<div class="spacer-2"></div>', unsafe_allow_html=True)
 

@@ -38,7 +38,7 @@ if "df" not in st.session_state or st.session_state.df is None:
         message="Upload your pizza order data to see analytics",
         icon="📊",
         cta_text="Upload Data",
-        cta_page="0_Home"
+        cta_page="1_Home"
     )
     st.stop()
 
@@ -48,7 +48,7 @@ if not st.session_state.get("data_is_clean", False):
         message="Complete data validation on the Home page first",
         icon="🧹",
         cta_text="Clean Data",
-        cta_page="0_Home"
+        cta_page="1_Home"
     )
     st.stop()
 
