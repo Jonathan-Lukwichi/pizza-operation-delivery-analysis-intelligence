@@ -14,7 +14,7 @@ import os
 # Add project root to path for Streamlit Cloud
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config import get_config, is_pro_mode
+from core.config import get_config
 from core.local_analytics import get_local_analytics
 from ui.layout import page_header, spacer, footer, render_empty_state
 from ui.metrics_cards import render_kpi_card
@@ -62,9 +62,8 @@ df_filtered = apply_filters(df, filters)
 analytics = get_local_analytics()
 kpis = analytics.get_kpis(df_filtered)
 
-# Mode indicator
-mode_text = "Pro Mode" if is_pro_mode() else "Lite Mode (Offline)"
-st.caption(f"Mode: {mode_text} | {len(df_filtered):,} orders")
+# Data indicator
+st.caption(f"Analyzing {len(df_filtered):,} orders")
 
 spacer("1rem")
 
@@ -315,10 +314,10 @@ st.markdown(f"""
     border-top: 1px solid rgba(59, 130, 246, 0.15);
 ">
     <p style="color: {COLORS['primary']}; font-size: 0.85rem; margin: 0 0 0.25rem 0;">
-        Dashboard powered by LocalAnalytics - works offline!
+        Dashboard powered by automated analytics - works offline!
     </p>
     <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin: 0;">
-        Use the sidebar to switch between Lite and Pro modes.
+        Navigate to Problems or Actions for deeper analysis.
     </p>
 </div>
 """, unsafe_allow_html=True)

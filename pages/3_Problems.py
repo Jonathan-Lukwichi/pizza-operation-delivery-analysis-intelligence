@@ -14,19 +14,11 @@ import os
 # Add project root to path for Streamlit Cloud
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.config import get_config, is_pro_mode
+from core.config import get_config
 from core.local_analytics import get_local_analytics
 from ui.layout import page_header, spacer, render_empty_state
 from ui.theme import COLORS, NEON, apply_plotly_theme
 from ui.filters import render_global_filters, apply_filters
-
-# Try to import AI components (for Pro mode)
-try:
-    from ai.business_analyst import get_business_analyst_agent
-    from ai.budget_tracker import get_budget_tracker, check_budget_before_query
-    AI_AVAILABLE = True
-except ImportError:
-    AI_AVAILABLE = False
 
 
 # ── Page Config ──
@@ -68,9 +60,8 @@ df_filtered = apply_filters(df, filters)
 # Get local analytics (works offline)
 analytics = get_local_analytics()
 
-# Mode indicator
-mode_text = "Pro Mode (AI Available)" if is_pro_mode() else "Lite Mode (Offline)"
-st.caption(f"Mode: {mode_text} | Analyzing {len(df_filtered):,} orders")
+# Data indicator
+st.caption(f"Analyzing {len(df_filtered):,} orders")
 
 spacer("1rem")
 
@@ -333,46 +324,6 @@ else:
 
 spacer("1.5rem")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# PRO MODE: AI DEEP DIVE
-# ══════════════════════════════════════════════════════════════════════════════
-if is_pro_mode() and AI_AVAILABLE:
-    st.markdown("---")
-    st.markdown("### AI Deep Dive Analysis")
-    st.markdown("Get AI-powered root cause analysis and insights")
-
-    if check_budget_before_query("operations_analysis"):
-        if st.button("🤖 Run AI Analysis", type="primary", use_container_width=True):
-            with st.spinner("AI is analyzing root causes..."):
-                try:
-                    agent = get_business_analyst_agent()
-                    result = agent.analyze(df_filtered)
-
-                    if result.success:
-                        st.markdown(f"""
-                        <div style="
-                            background: {COLORS['bg_card']};
-                            border: 1px solid {COLORS['primary']}30;
-                            border-radius: 12px;
-                            padding: 1.5rem;
-                        ">
-                            <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0;">AI Analysis</h4>
-                            <div style="color: {COLORS['text_secondary']}; line-height: 1.6;">
-                                {result.content.replace(chr(10), '<br>')}
-                            </div>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                        # Track cost
-                        if result.cost > 0:
-                            get_budget_tracker().add_cost(result.cost)
-                            st.caption(f"Analysis cost: R{result.cost * 18.5:.2f}")
-                    else:
-                        st.error(f"AI analysis failed: {result.content}")
-                except Exception as e:
-                    st.error(f"AI error: {str(e)}")
-elif is_pro_mode() and not AI_AVAILABLE:
-    st.info("AI components not available. Check your API key in Settings.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FOOTER

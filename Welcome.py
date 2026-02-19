@@ -701,11 +701,11 @@ with col2:
 st.markdown('<div class="spacer-2"></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# MODES COMPARISON
+# KEY BENEFITS
 # ══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
-<h2 class="section-title">Choose Your Mode</h2>
-<p class="section-subtitle">Pick what works best for your business</p>
+<h2 class="section-title">Why PizzaOps?</h2>
+<p class="section-subtitle">Built specifically for South African food delivery businesses</p>
 """, unsafe_allow_html=True)
 
 mode_col1, mode_col2 = st.columns(2)
@@ -714,13 +714,13 @@ with mode_col1:
     st.markdown("""
     <div class="mode-card-green">
         <div class="mode-icon">⚡</div>
-        <h3 class="mode-title-green">Lite Mode</h3>
-        <p class="mode-subtitle-green">Works Offline</p>
+        <h3 class="mode-title-green">Works Offline</h3>
+        <p class="mode-subtitle-green">Load Shedding Safe</p>
         <div class="mode-list">
-            <p class="mode-list-item-green"><span class="mode-check-green">✓</span> Load Shedding Safe</p>
             <p class="mode-list-item-green"><span class="mode-check-green">✓</span> No Internet Required</p>
             <p class="mode-list-item-green"><span class="mode-check-green">✓</span> Zero API Costs</p>
-            <p class="mode-list-item-green" style="border: none;"><span class="mode-check-green">✓</span> Basic Analytics</p>
+            <p class="mode-list-item-green"><span class="mode-check-green">✓</span> Instant Results</p>
+            <p class="mode-list-item-green" style="border: none;"><span class="mode-check-green">✓</span> 100% Local Processing</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -728,14 +728,14 @@ with mode_col1:
 with mode_col2:
     st.markdown("""
     <div class="mode-card-cyan">
-        <div class="mode-icon">🤖</div>
-        <h3 class="mode-title-cyan">Pro Mode</h3>
-        <p class="mode-subtitle-cyan">AI-Powered</p>
+        <div class="mode-icon">📊</div>
+        <h3 class="mode-title-cyan">Smart Analytics</h3>
+        <p class="mode-subtitle-cyan">Automated Insights</p>
         <div class="mode-list">
-            <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Smart Recommendations</p>
-            <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Deep Root Cause Analysis</p>
-            <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Budget Controlled (ZAR)</p>
-            <p class="mode-list-item-cyan" style="border: none;"><span class="mode-check-cyan">✓</span> Advanced Insights</p>
+            <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Bottleneck Detection</p>
+            <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Performance Benchmarks</p>
+            <p class="mode-list-item-cyan"><span class="mode-check-cyan">✓</span> Automated Recommendations</p>
+            <p class="mode-list-item-cyan" style="border: none;"><span class="mode-check-cyan">✓</span> WhatsApp Export</p>
         </div>
     </div>
     """, unsafe_allow_html=True)

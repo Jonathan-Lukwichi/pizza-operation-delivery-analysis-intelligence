@@ -12,10 +12,7 @@ import sys
 import os
 
 # Ensure project root is in path for local modules
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-from dotenv import load_dotenv
-load_dotenv()
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data.loader import load_and_validate, get_summary_stats
 from data.transformer import transform_data
@@ -27,22 +24,10 @@ from ui.charts import (
     histogram_chart, correlation_heatmap, missing_values_chart, gauge_chart
 )
 
-# Import configuration and SA market optimization modules
-from core.config import get_config, is_pro_mode, is_lite_mode, set_mode, get_mode
+# Import configuration and analytics modules
+from core.config import get_config
 from core.local_analytics import get_local_analytics
 from core.data_profiler import get_data_profiler
-from ai.budget_tracker import get_budget_tracker, render_budget_widget, check_budget_before_query
-
-# Try to import AI components
-try:
-    from ui.ai_components import render_ai_status_badge, render_ai_chat_widget
-    from ai.service import get_ai_service
-    from ai.data_quality_agent import get_data_quality_agent
-    from ai.business_analyst import get_business_analyst_agent
-    from ui.ai_dashboards import render_quality_dashboard, render_business_analyst_dashboard
-    AI_AVAILABLE = True
-except ImportError:
-    AI_AVAILABLE = False
 
 
 # ── Page Config ──
@@ -66,74 +51,7 @@ def main():
         config = get_config()
         st.markdown(f'<div style="text-align:center;padding:1rem 0;"><h1 style="color:{COLORS["primary"]};font-size:1.5rem;margin:0;">🍕 {config.business_name}</h1><p style="color:{COLORS["text_secondary"]};font-size:0.875rem;margin:0;">{config.tagline}</p></div>', unsafe_allow_html=True)
 
-        # ── Mode Selector (Lite/Pro) ──
-        st.markdown("#### Mode")
-        mode_col1, mode_col2 = st.columns(2)
-        with mode_col1:
-            lite_selected = is_lite_mode()
-            if st.button(
-                "Lite",
-                type="primary" if lite_selected else "secondary",
-                use_container_width=True,
-                help="Offline mode - works without internet"
-            ):
-                set_mode("lite")
-                st.rerun()
-        with mode_col2:
-            pro_selected = is_pro_mode()
-            if st.button(
-                "Pro",
-                type="primary" if pro_selected else "secondary",
-                use_container_width=True,
-                help="Smart automation (requires API key)"
-            ):
-                set_mode("pro")
-                st.rerun()
-
-        # Mode description
-        if is_lite_mode():
-            st.caption("Works offline during load shedding")
-        else:
-            st.caption("Smart automation enabled")
-
         st.markdown("---")
-
-        # ── Automation Status (Pro mode only) ──
-        if is_pro_mode() and AI_AVAILABLE:
-            ai = get_ai_service()
-            if ai.is_available():
-                st.markdown(f"""
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: {COLORS['success']}15;
-                    border: 1px solid {COLORS['success']}30;
-                    border-radius: 8px;
-                    padding: 0.5rem;
-                    margin-bottom: 0.5rem;
-                ">
-                    <span style="color: {COLORS['success']}; font-size: 0.8rem;">✓ Automation Ready</span>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    background: {COLORS['warning']}15;
-                    border: 1px solid {COLORS['warning']}30;
-                    border-radius: 8px;
-                    padding: 0.5rem;
-                    margin-bottom: 0.5rem;
-                ">
-                    <span style="color: {COLORS['warning']}; font-size: 0.8rem;">⚠️ Configure Automation</span>
-                </div>
-                """, unsafe_allow_html=True)
-                if st.button("Configure Automation", use_container_width=True, type="secondary"):
-                    st.switch_page("pages/1_Process Configuration.py")
-            st.markdown("---")
 
         # ── Data Status ──
         if "df" in st.session_state and st.session_state.df is not None:
@@ -215,7 +133,7 @@ def render_upload_section():
                 st.session_state.df = df.copy()
                 st.session_state.data_report = report
                 st.session_state.upload_time = datetime.now()
-                st.session_state.data_is_clean = False  # IMPORTANT: Initialize cleaning status
+                st.session_state.data_is_clean = False
                 st.success("Data loaded successfully! Proceed to the 'Data Quality & Cleaning' tab.")
                 st.rerun()
 
@@ -392,7 +310,7 @@ def render_smart_profiler(df: pd.DataFrame):
 
 
 def render_cleaning_tab():
-    """Render the UI for the data cleaning workbench with AI Data Quality Agent."""
+    """Render the UI for the data cleaning workbench."""
     st.header("Data Quality & Cleaning Workbench")
 
     if 'df' not in st.session_state:
@@ -417,62 +335,10 @@ def render_cleaning_tab():
     # ══════════════════════════════════════════════════════════════════════════
     render_smart_profiler(df)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # AI DATA QUALITY AGENT SECTION (Pro Mode Only)
-    # ══════════════════════════════════════════════════════════════════════════
-    if is_pro_mode() and AI_AVAILABLE:
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, {COLORS['primary']}15 0%, {COLORS['primary']}05 100%);
-            border: 1px solid {COLORS['primary']}30;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        ">
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                <span style="font-size: 2rem; margin-right: 1rem;">🔬</span>
-                <div>
-                    <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Data Quality Analyst</h3>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                        Let automation examine your dataset and suggest cleaning actions
-                    </p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-
-        # Check budget before showing AI button
-        if check_budget_before_query("data_quality"):
-            if st.button("🔬 Analyze Data Quality", type="primary", use_container_width=True, key="ai_quality_btn"):
-                with st.spinner("Analyzing your data quality..."):
-                    try:
-                        agent = get_data_quality_agent()
-                        result = agent.analyze(df)
-                        st.session_state.quality_report = result
-                        # Track cost
-                        if result.cost > 0:
-                            get_budget_tracker().add_cost(result.cost)
-                    except Exception as e:
-                        st.error(f"Analysis error: {str(e)}")
-
-        st.markdown("</div>", unsafe_allow_html=True)
-    elif is_lite_mode():
-        # Show local analysis option in Lite mode
-        st.info("Switch to Pro mode in the sidebar for smart data quality analysis.")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # AI QUALITY DASHBOARD (displays if report exists, regardless of mode)
-    # ══════════════════════════════════════════════════════════════════════════
-    if "quality_report" in st.session_state and AI_AVAILABLE:
-        report = st.session_state.quality_report
-        if report.success:
-            render_quality_dashboard(report, df)
-        else:
-            st.error(f"Quality analysis failed: {report.content}")
-
     st.markdown("---")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # MANUAL CLEANING OPTIONS (existing functionality)
+    # MANUAL CLEANING OPTIONS
     # ══════════════════════════════════════════════════════════════════════════
     with st.expander("Manual Cleaning Options", expanded=False):
         # 1. Handle Duplicates
@@ -608,7 +474,7 @@ def render_cleaning_tab():
     with col1:
         if st.button("🗑️ Clear Data & Upload New File", type="secondary", use_container_width=True):
             for key in list(st.session_state.keys()):
-                if key.startswith('df') or key in ['data_report', 'upload_time', 'data_is_clean', 'quality_report', 'selected_fixes', 'operations_report']:
+                if key.startswith('df') or key in ['data_report', 'upload_time', 'data_is_clean']:
                     del st.session_state[key]
             st.rerun()
 
@@ -623,7 +489,7 @@ def render_cleaning_tab():
 def render_eda_section():
     """
     Render comprehensive Exploratory Data Analysis section.
-    Works offline - no AI required.
+    Works offline - pure Python analytics.
     """
     st.header("Exploratory Data Analysis")
     st.markdown("Understand your data before identifying bottlenecks")
@@ -1028,7 +894,7 @@ def render_eda_section():
 
 
 def render_dashboard_tab():
-    """Render the main dashboard overview with AI Business Analyst Agent."""
+    """Render the main dashboard overview with automated analytics."""
     st.header("Dashboard Overview")
     df = st.session_state.df
 
@@ -1056,162 +922,92 @@ def render_dashboard_tab():
     spacer("1.5rem")
 
     # ══════════════════════════════════════════════════════════════════════════
-    # AI BUSINESS ANALYST AGENT SECTION (Pro Mode Only)
+    # AUTOMATED BOTTLENECK ANALYSIS
     # ══════════════════════════════════════════════════════════════════════════
-    if is_pro_mode() and AI_AVAILABLE:
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, {COLORS['primary']}15 0%, {COLORS['primary']}05 100%);
-            border: 1px solid {COLORS['primary']}30;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        ">
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                <span style="font-size: 2rem; margin-right: 1rem;">📊</span>
-                <div>
-                    <h3 style="color: {COLORS['text_primary']}; margin: 0;">Smart Business Analyst</h3>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                        Analyze your operations, find bottlenecks, and get recommendations
-                    </p>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+    st.markdown("### 🔍 Automated Bottleneck Analysis")
 
-        # Check budget before showing AI button
-        if check_budget_before_query("operations_analysis"):
-            if st.button("📊 Analyze Operations", type="primary", use_container_width=True, key="ai_analyst_btn"):
-                with st.spinner("Analyzing your operations..."):
-                    try:
-                        agent = get_business_analyst_agent()
-                        result = agent.analyze(df)
-                        st.session_state.operations_report = result
-                        # Track cost
-                        if result.cost > 0:
-                            get_budget_tracker().add_cost(result.cost)
-                    except Exception as e:
-                        st.error(f"Analysis error: {str(e)}")
+    analytics = get_local_analytics()
+    bottlenecks = analytics.detect_bottlenecks(df)
 
-        st.markdown("</div>", unsafe_allow_html=True)
-    elif is_lite_mode():
-        # Show local analysis in Lite mode
+    if bottlenecks:
         st.markdown(f"""
         <div style="
             background: {COLORS['bg_card']};
             border: 1px solid {COLORS['border']};
             border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
         ">
-            <h4 style="color: {COLORS['text_primary']}; margin: 0 0 0.5rem 0;">💡 Lite Mode Active</h4>
             <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                Using offline analytics. Switch to Pro mode for smart automation.
+                Found <strong>{len(bottlenecks)}</strong> bottlenecks in your operations
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-        # Show local analytics results
-        analytics = get_local_analytics()
-        bottlenecks = analytics.detect_bottlenecks(df)
-        if bottlenecks:
-            st.markdown("#### Detected Bottlenecks (Offline Analysis)")
-            for b in bottlenecks[:3]:
-                severity_color = COLORS['danger'] if b.severity in ['critical', 'high'] else COLORS['warning']
-                st.markdown(f"""
-                <div style="
-                    background: {severity_color}10;
-                    border-left: 3px solid {severity_color};
-                    padding: 0.75rem 1rem;
-                    border-radius: 0 8px 8px 0;
-                    margin-bottom: 0.5rem;
-                ">
-                    <strong style="color: {COLORS['text_primary']};">{b.area}</strong>
-                    <span style="color: {severity_color}; font-size: 0.8rem; margin-left: 0.5rem;">{b.severity.upper()}</span>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0.25rem 0 0 0; font-size: 0.875rem;">
-                        {b.impact_description}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # AI BUSINESS ANALYST DASHBOARD (displays if report exists, regardless of mode)
-    # ══════════════════════════════════════════════════════════════════════════
-    if "operations_report" in st.session_state and AI_AVAILABLE:
-        report = st.session_state.operations_report
-        if report.success:
-            render_business_analyst_dashboard(report, df)
-        else:
-            st.error(f"Operations analysis failed: {report.content}")
+        for b in bottlenecks[:5]:
+            severity_color = COLORS['danger'] if b.severity in ['critical', 'high'] else COLORS['warning'] if b.severity == 'medium' else COLORS['primary']
+            st.markdown(f"""
+            <div style="
+                background: {severity_color}10;
+                border-left: 3px solid {severity_color};
+                padding: 0.75rem 1rem;
+                border-radius: 0 8px 8px 0;
+                margin-bottom: 0.5rem;
+            ">
+                <strong style="color: {COLORS['text_primary']};">{b.area}</strong>
+                <span style="color: {severity_color}; font-size: 0.8rem; margin-left: 0.5rem;">{b.severity.upper()}</span>
+                <p style="color: {COLORS['text_secondary']}; margin: 0.25rem 0 0 0; font-size: 0.875rem;">
+                    {b.impact_description}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.success("No significant bottlenecks detected! Your operations are running smoothly.")
 
     st.markdown("---")
 
-    # Quick Ask Section (existing functionality)
-    ai = get_ai_service()
-    if ai.is_available():
-        st.markdown("### 💬 Quick Ask")
+    # ══════════════════════════════════════════════════════════════════════════
+    # AUTOMATED RECOMMENDATIONS
+    # ══════════════════════════════════════════════════════════════════════════
+    st.markdown("### 💡 Automated Recommendations")
 
-        ai_col1, ai_col2 = st.columns([3, 1])
+    recommendations = analytics.generate_recommendations(df)
 
-        with ai_col1:
-            user_question = st.text_input(
-                "Ask about your data",
-                placeholder="e.g., Why are complaints higher than target?",
-                label_visibility="collapsed",
-                key="home_ai_question"
-            )
+    if recommendations:
+        for i, rec in enumerate(recommendations[:5], 1):
+            priority_color = COLORS['danger'] if rec.get('priority') == 'high' else COLORS['warning'] if rec.get('priority') == 'medium' else COLORS['success']
+            st.markdown(f"""
+            <div style="
+                background: {COLORS['bg_card']};
+                border: 1px solid {COLORS['border']};
+                border-radius: 12px;
+                padding: 1rem;
+                margin-bottom: 0.75rem;
+            ">
+                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="
+                        background: {priority_color}20;
+                        color: {priority_color};
+                        padding: 0.2rem 0.6rem;
+                        border-radius: 12px;
+                        font-size: 0.75rem;
+                        font-weight: 600;
+                        margin-right: 0.75rem;
+                    ">{rec.get('priority', 'medium').upper()}</span>
+                    <strong style="color: {COLORS['text_primary']};">{rec.get('title', f'Recommendation {i}')}</strong>
+                </div>
+                <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
+                    {rec.get('description', '')}
+                </p>
+                <p style="color: {COLORS['text_muted']}; margin: 0.5rem 0 0 0; font-size: 0.8rem;">
+                    💰 Expected Impact: {rec.get('impact', 'Improved efficiency')}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("Upload more data to generate personalized recommendations.")
 
-        with ai_col2:
-            ask_button = st.button("⚡ Ask", use_container_width=True, key="home_ask_ai")
-
-        # Quick action buttons
-        qa_col1, qa_col2, qa_col3, qa_col4 = st.columns(4)
-        with qa_col1:
-            if st.button("📊 Summary", use_container_width=True, key="qa_summary"):
-                user_question = "Give me a quick performance summary"
-        with qa_col2:
-            if st.button("🎯 Priorities", use_container_width=True, key="qa_priorities"):
-                user_question = "What are my top 3 priorities today?"
-        with qa_col3:
-            if st.button("⚠️ Issues", use_container_width=True, key="qa_issues"):
-                user_question = "What issues need immediate attention?"
-        with qa_col4:
-            if st.button("💡 Quick Wins", use_container_width=True, key="qa_wins"):
-                user_question = "What quick wins can I implement today?"
-
-        # Process question
-        if (ask_button or user_question) and user_question:
-            with st.spinner("Thinking..."):
-                response = ai.query(user_question, df)
-                if response.success:
-                    st.markdown(f"""
-                    <div style="
-                        background: linear-gradient(135deg, {COLORS['primary']}10 0%, {COLORS['primary']}05 100%);
-                        border-left: 4px solid {COLORS['primary']};
-                        border-radius: 0 12px 12px 0;
-                        padding: 1.25rem;
-                        margin: 1rem 0;
-                    ">
-                        <div style="display: flex; align-items: center; margin-bottom: 0.75rem;">
-                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🤖</span>
-                            <strong style="color: {COLORS['text_primary']};">Response</strong>
-                            <span style="
-                                margin-left: auto;
-                                background: {COLORS['primary']}20;
-                                color: {COLORS['primary']};
-                                padding: 0.2rem 0.6rem;
-                                border-radius: 12px;
-                                font-size: 0.7rem;
-                            ">Cost: ${response.cost:.4f}</span>
-                        </div>
-                        <div style="color: {COLORS['text_secondary']}; line-height: 1.6;">
-                            {response.content.replace(chr(10), '<br>')}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.error(response.content)
-
-        spacer("1rem")
+    spacer("1rem")
 
     st.markdown(f'<div style="background-color:{COLORS["bg_card"]};border-radius:12px;padding:1.5rem;border-left:4px solid {COLORS["primary"]};text-align:center;"><h3 style="color:{COLORS["text_primary"]};margin-bottom:0.5rem;">🚀 Analysis Ready</h3><p style="color:{COLORS["text_secondary"]};">Use the sidebar to navigate to other detailed analysis pages.</p></div>', unsafe_allow_html=True)
     spacer("1.5rem")

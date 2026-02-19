@@ -51,9 +51,6 @@ class BusinessConfig:
     peak_dinner_start: int = 17
     peak_dinner_end: int = 21
 
-    # AI Budget (ZAR)
-    daily_budget_zar: float = 50.0
-
     # Pipeline Stages (default pizza stages)
     stages: List[StageConfig] = field(default_factory=lambda: [
         StageConfig("dough_prep", "Dough Prep", "dough_prep_time", 5.0, 8.0, "#8B5CF6"),
@@ -96,7 +93,6 @@ class BusinessConfig:
             "peak_lunch_end": self.peak_lunch_end,
             "peak_dinner_start": self.peak_dinner_start,
             "peak_dinner_end": self.peak_dinner_end,
-            "daily_budget_zar": self.daily_budget_zar,
             "stages": [
                 {
                     "id": s.id,
@@ -141,7 +137,6 @@ class BusinessConfig:
             peak_lunch_end=data.get("peak_lunch_end", 14),
             peak_dinner_start=data.get("peak_dinner_start", 17),
             peak_dinner_end=data.get("peak_dinner_end", 21),
-            daily_budget_zar=data.get("daily_budget_zar", 50.0),
             stages=stages if stages else None,
             delivery_areas=data.get("delivery_areas"),
             staff_roles=data.get("staff_roles"),

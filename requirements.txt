@@ -11,5 +11,4 @@ openpyxl>=3.1.0
 python-pptx>=0.6.21
 fpdf2>=2.7.0
 holidays>=0.40
-anthropic>=0.18.0
 python-dotenv>=1.0.0

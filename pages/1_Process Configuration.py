@@ -14,18 +14,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import (
     get_config, save_config, BusinessConfig, StageConfig,
-    export_config_json, import_config_json, set_mode, get_mode
+    export_config_json, import_config_json
 )
 from ui.layout import page_header, spacer
 from ui.theme import COLORS, NEON
-
-# Try to import budget tracker
-try:
-    from ai.budget_tracker import get_budget_tracker
-    BUDGET_AVAILABLE = True
-except ImportError:
-    BUDGET_AVAILABLE = False
-
 
 # ── Page Config ──
 st.set_page_config(page_title="Process Configuration | PizzaOps", page_icon="⚙️", layout="wide")
@@ -212,172 +204,6 @@ with st.expander("Pipeline Stages", expanded=False):
             st.markdown("---")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# AUTOMATION API KEY CONFIGURATION
-# ══════════════════════════════════════════════════════════════════════════════
-with st.expander("Automation Settings (Pro Mode)", expanded=False):
-    st.markdown("Configure your API key for smart automation features")
-
-    # Check current API key status
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    env_key = os.getenv("ANTHROPIC_API_KEY")
-    session_key = st.session_state.get("user_api_key", "")
-
-    # Determine current key source
-    if env_key and env_key != "your_api_key_here":
-        st.success("✓ API key configured via environment variable")
-        key_source = "environment"
-    elif session_key:
-        st.info("API key configured for this session only")
-        key_source = "session"
-    else:
-        st.warning("No API key configured - automation features disabled")
-        key_source = None
-
-    st.markdown("---")
-
-    # API Key input
-    new_api_key = st.text_input(
-        "Anthropic API Key",
-        value=session_key,
-        type="password",
-        placeholder="sk-ant-api03-...",
-        help="Get your key at https://console.anthropic.com/"
-    )
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("💾 Save API Key (Session)", use_container_width=True):
-            if new_api_key and new_api_key.startswith("sk-"):
-                st.session_state.user_api_key = new_api_key
-                st.success("API key saved! Automation features now available.")
-                st.rerun()
-            elif new_api_key:
-                st.error("Invalid API key format. Should start with 'sk-'")
-            else:
-                st.warning("Please enter an API key")
-
-    with col2:
-        if st.button("🗑️ Clear API Key", use_container_width=True):
-            if "user_api_key" in st.session_state:
-                del st.session_state.user_api_key
-                st.success("API key cleared")
-                st.rerun()
-
-    # Help text
-    st.markdown("---")
-    st.markdown(f"""
-    <div style="background: rgba(0, 180, 255, 0.1); border: 1px solid rgba(0, 180, 255, 0.3); border-radius: 8px; padding: 1rem;">
-        <p style="color: {COLORS['primary']}; font-weight: bold; margin: 0 0 0.5rem 0;">💡 For permanent setup:</p>
-        <ol style="color: {COLORS['text_secondary']}; font-size: 0.85rem; margin: 0; padding-left: 1.25rem;">
-            <li>Create a <code>.env</code> file in the project root</li>
-            <li>Add: <code>ANTHROPIC_API_KEY=your_key_here</code></li>
-            <li>Restart the app</li>
-        </ol>
-        <p style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin: 0.75rem 0 0 0;">
-            Or set it in Streamlit Cloud secrets for deployment.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# AUTOMATION BUDGET (PRO MODE)
-# ══════════════════════════════════════════════════════════════════════════════
-with st.expander("Automation Budget (Pro Mode)", expanded=False):
-    st.markdown("Control your automation spending in South African Rand")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        new_budget = st.number_input(
-            "Daily Budget (ZAR)",
-            min_value=0.0,
-            max_value=500.0,
-            value=config.daily_budget_zar,
-            step=10.0,
-            help="Set to 0 to disable automation features"
-        )
-        st.caption("R50 is approximately $2.70 USD")
-
-    with col2:
-        if BUDGET_AVAILABLE:
-            tracker = get_budget_tracker()
-            status = tracker.get_status()
-            st.metric("Spent Today", f"R{status.spent_zar:.2f}")
-            st.metric("Remaining", f"R{status.remaining_zar:.2f}")
-
-            if st.button("Reset Daily Budget"):
-                st.session_state.session_cost_usd = 0.0
-                st.session_state.session_queries = 0
-                st.success("Budget reset!")
-                st.rerun()
-
-# ══════════════════════════════════════════════════════════════════════════════
-# MODE SELECTION - NEON STYLE
-# ══════════════════════════════════════════════════════════════════════════════
-with st.expander("App Mode", expanded=False):
-    st.markdown("Choose between Lite (offline) and Pro (smart automation) modes")
-
-    current_mode = get_mode()
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        lite_active = current_mode == 'lite'
-        lite_bg = 'rgba(34, 197, 94, 0.1)' if lite_active else 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%)'
-        lite_border = COLORS['success'] if lite_active else 'rgba(34, 197, 94, 0.3)'
-
-        st.markdown(f"""
-        <div style="
-            background: {lite_bg};
-            border: 1px solid {lite_border};
-            border-radius: 16px;
-            padding: 1.25rem;
-            transition: all 0.3s ease;
-        ">
-            <h4 style="color: {COLORS['success']}; margin: 0 0 0.75rem 0;">⚡ Lite Mode</h4>
-            <ul style="color: {COLORS['text_secondary']}; font-size: 0.85rem; padding-left: 1.25rem; margin: 0; line-height: 1.8;">
-                <li>Works offline (load shedding safe)</li>
-                <li>No API costs</li>
-                <li>Basic analytics</li>
-                <li>WhatsApp export</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Use Lite Mode", use_container_width=True, disabled=current_mode == "lite"):
-            set_mode("lite")
-            st.rerun()
-
-    with col2:
-        pro_active = current_mode == 'pro'
-        pro_bg = 'rgba(139, 92, 246, 0.1)' if pro_active else 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%)'
-        pro_border = COLORS['secondary'] if pro_active else 'rgba(139, 92, 246, 0.3)'
-
-        st.markdown(f"""
-        <div style="
-            background: {pro_bg};
-            border: 1px solid {pro_border};
-            border-radius: 16px;
-            padding: 1.25rem;
-            transition: all 0.3s ease;
-        ">
-            <h4 style="color: {COLORS['secondary']}; margin: 0 0 0.75rem 0;">🤖 Pro Mode</h4>
-            <ul style="color: {COLORS['text_secondary']}; font-size: 0.85rem; padding-left: 1.25rem; margin: 0; line-height: 1.8;">
-                <li>Smart automation</li>
-                <li>Smart recommendations</li>
-                <li>Root cause analysis</li>
-                <li>Budget controlled (ZAR)</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button("Use Pro Mode", use_container_width=True, disabled=current_mode == "pro"):
-            set_mode("pro")
-            st.rerun()
-
-# ══════════════════════════════════════════════════════════════════════════════
 # EXPORT/IMPORT CONFIG
 # ══════════════════════════════════════════════════════════════════════════════
 with st.expander("Export / Import Configuration", expanded=False):
@@ -434,7 +260,6 @@ with col2:
             peak_lunch_end=new_lunch_end,
             peak_dinner_start=new_dinner_start,
             peak_dinner_end=new_dinner_end,
-            daily_budget_zar=new_budget,
             stages=new_stages,
         )
 
