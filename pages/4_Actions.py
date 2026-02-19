@@ -15,9 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.config import get_config
 from core.local_analytics import get_local_analytics
-from reports.whatsapp_export import generate_whatsapp_summary, render_whatsapp_export_section
+from reports.whatsapp_export import render_whatsapp_export_section
 from ui.layout import page_header, spacer, render_empty_state
-from ui.theme import COLORS, NEON
+from ui.theme import COLORS
 
 
 # ── Page Config ──

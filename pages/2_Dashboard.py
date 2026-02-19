@@ -6,7 +6,6 @@ Works: 100% offline (Lite mode)
 
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import sys
 import os
@@ -18,7 +17,7 @@ from core.config import get_config
 from core.local_analytics import get_local_analytics
 from ui.layout import page_header, spacer, footer, render_empty_state
 from ui.metrics_cards import render_kpi_card
-from ui.theme import COLORS, NEON, apply_plotly_theme
+from ui.theme import COLORS, apply_plotly_theme
 from ui.filters import render_global_filters, apply_filters
 
 

@@ -168,24 +168,3 @@ def import_config_json(json_str: str) -> BusinessConfig:
     """Import configuration from JSON string."""
     data = json.loads(json_str)
     return BusinessConfig.from_dict(data)
-
-
-# Mode helpers
-def is_pro_mode() -> bool:
-    """Check if app is in Pro mode (AI enabled)."""
-    return st.session_state.get("app_mode", "lite") == "pro"
-
-
-def is_lite_mode() -> bool:
-    """Check if app is in Lite mode (offline only)."""
-    return not is_pro_mode()
-
-
-def set_mode(mode: str):
-    """Set app mode ('lite' or 'pro')."""
-    st.session_state.app_mode = mode
-
-
-def get_mode() -> str:
-    """Get current app mode."""
-    return st.session_state.get("app_mode", "lite")

@@ -17,7 +17,7 @@ from core.config import (
     export_config_json, import_config_json
 )
 from ui.layout import page_header, spacer
-from ui.theme import COLORS, NEON
+from ui.theme import COLORS
 
 # ── Page Config ──
 st.set_page_config(page_title="Process Configuration | PizzaOps", page_icon="⚙️", layout="wide")

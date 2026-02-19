@@ -1,7 +1,7 @@
 """
 Page: Problems
 Purpose: Identify bottlenecks, performance gaps, and issues
-Works: Offline (Lite mode) with optional AI enhancement (Pro mode)
+Works: 100% offline with automated analytics
 """
 
 import streamlit as st
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.config import get_config
 from core.local_analytics import get_local_analytics
 from ui.layout import page_header, spacer, render_empty_state
-from ui.theme import COLORS, NEON, apply_plotly_theme
+from ui.theme import COLORS, apply_plotly_theme
 from ui.filters import render_global_filters, apply_filters
 
 
