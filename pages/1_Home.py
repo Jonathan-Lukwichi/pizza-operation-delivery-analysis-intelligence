@@ -416,11 +416,78 @@ def render_cleaning_tab():
 
         st.markdown("---")
 
-        # 3. Create Indicator Variables (Binary 0/1)
+        # 3. Standardize Text Values (Fix inconsistent casing)
+        st.subheader("Standardize Text Values")
+        st.caption("🔤 Fix inconsistent text casing (e.g., 'Late delivery' vs 'late delivery' vs 'Late Delivery')")
+
+        # Find text/object columns
+        text_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+        if text_cols:
+            std_col = st.selectbox("Select column to standardize:", options=text_cols, key="standardize_col_select")
+
+            if std_col:
+                # Show current unique values
+                unique_vals = df[std_col].dropna().unique().tolist()
+                st.write(f"**{std_col}** has **{len(unique_vals)}** unique values:")
+
+                # Display values in a compact way
+                with st.expander("View current values", expanded=False):
+                    for v in unique_vals[:20]:
+                        st.caption(f"  • `{v}`")
+                    if len(unique_vals) > 20:
+                        st.caption(f"  ... and {len(unique_vals) - 20} more")
+
+                # Standardization options
+                case_option = st.radio(
+                    "Convert text to:",
+                    options=["lowercase", "UPPERCASE", "Title Case"],
+                    horizontal=True,
+                    key="case_option"
+                )
+
+                # Preview
+                if case_option == "lowercase":
+                    preview_vals = [str(v).lower() for v in unique_vals[:5]]
+                elif case_option == "UPPERCASE":
+                    preview_vals = [str(v).upper() for v in unique_vals[:5]]
+                else:  # Title Case
+                    preview_vals = [str(v).title() for v in unique_vals[:5]]
+
+                st.caption(f"Preview: {unique_vals[:5]} → {preview_vals}")
+
+                # Count how many duplicates will be merged
+                if case_option == "lowercase":
+                    new_unique = len(set(str(v).lower() for v in unique_vals))
+                elif case_option == "UPPERCASE":
+                    new_unique = len(set(str(v).upper() for v in unique_vals))
+                else:
+                    new_unique = len(set(str(v).title() for v in unique_vals))
+
+                if new_unique < len(unique_vals):
+                    st.info(f"This will merge {len(unique_vals)} values into {new_unique} unique values (fixing {len(unique_vals) - new_unique} inconsistencies)")
+
+                if st.button("Apply Standardization", key="apply_standardize"):
+                    df_copy = st.session_state.df.copy()
+                    if case_option == "lowercase":
+                        df_copy[std_col] = df_copy[std_col].astype(str).str.lower()
+                    elif case_option == "UPPERCASE":
+                        df_copy[std_col] = df_copy[std_col].astype(str).str.upper()
+                    else:
+                        df_copy[std_col] = df_copy[std_col].astype(str).str.title()
+
+                    st.session_state.df = df_copy
+                    st.success(f"Standardized '{std_col}' to {case_option}")
+                    st.rerun()
+        else:
+            st.success("No text columns found to standardize.")
+
+        st.markdown("---")
+
+        # 4. Create Indicator Variables (Binary 0/1)
         st.subheader("Create Indicator Variables")
         st.caption("🔢 Create binary columns (0 or 1) from text categories for analysis")
 
-        # Find text/object columns
+        # Find text/object columns (refresh after potential standardization)
         text_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
         if text_cols:
             encode_col = st.selectbox("Select column with text values:", options=text_cols, key="encode_col_select")
