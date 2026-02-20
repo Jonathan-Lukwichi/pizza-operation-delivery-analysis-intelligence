@@ -112,9 +112,11 @@ class PizzaOpsPDF:
         self.pdf.set_text_color(*self.dark)
         # Ensure x position is at left margin
         self.pdf.set_x(self.pdf.l_margin)
+        # Calculate explicit width
+        text_width = self.pdf.w - self.pdf.l_margin - self.pdf.r_margin
         # Wrap long words to prevent overflow
         wrapped_text = self.wrap_long_words(text, 60)
-        self.pdf.multi_cell(0, 6, wrapped_text)
+        self.pdf.multi_cell(text_width, 6, wrapped_text)
         self.pdf.ln(3)
 
     def add_kpi_row(self, kpis: List[Dict]):
@@ -201,7 +203,7 @@ class PizzaOpsPDF:
                 f"Note: This table has been truncated to display the first {display_cols_count} of "
                 f"{original_num_columns} total columns to fit the page width."
             )
-            self.pdf.multi_cell(0, 5, warning_text, align='L')
+            self.pdf.multi_cell(effective_page_width, 5, warning_text, align='L')
             self.pdf.set_text_color(*self.dark)  # Reset to default text color
             self.pdf.ln(2)
         
@@ -259,9 +261,11 @@ class PizzaOpsPDF:
             # Reset x position to left margin
             self.pdf.set_x(self.pdf.l_margin)
             self.pdf.cell(5, 6, chr(149), ln=False)  # Bullet character
+            # Calculate explicit width (page width minus margins minus bullet indent)
+            text_width = self.pdf.w - self.pdf.l_margin - self.pdf.r_margin - 5
             # Wrap long words and render
             wrapped_item = self.wrap_long_words(str(item), 50)
-            self.pdf.multi_cell(0, 6, f" {wrapped_item}")
+            self.pdf.multi_cell(text_width, 6, f" {wrapped_item}")
 
         self.pdf.ln(3)
 
@@ -544,12 +548,14 @@ def generate_recommendations_pdf(
                     pdf.add_paragraph(f"{title}")
                     pdf.pdf.set_font('Helvetica', '', 10)
                     pdf.pdf.set_text_color(*pdf.gray)
+                    # Calculate explicit text width
+                    text_width = pdf.pdf.w - pdf.pdf.l_margin - pdf.pdf.r_margin
                     pdf.pdf.set_x(pdf.pdf.l_margin)
-                    pdf.pdf.multi_cell(0, 5, f"Action: {action}")
+                    pdf.pdf.multi_cell(text_width, 5, f"Action: {action}")
                     pdf.pdf.set_x(pdf.pdf.l_margin)
-                    pdf.pdf.multi_cell(0, 5, f"Expected Impact: {impact}")
+                    pdf.pdf.multi_cell(text_width, 5, f"Expected Impact: {impact}")
                     pdf.pdf.set_x(pdf.pdf.l_margin)
-                    pdf.pdf.multi_cell(0, 5, f"Evidence: {evidence}")
+                    pdf.pdf.multi_cell(text_width, 5, f"Evidence: {evidence}")
                     pdf.pdf.ln(5)
     else:
         pdf.add_paragraph("No urgent actions required - all metrics within targets!")
