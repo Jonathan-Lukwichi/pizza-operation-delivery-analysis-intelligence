@@ -449,62 +449,23 @@ def render_status_row(statuses: list):
             text_color = COLORS["text_muted"]
             glow = "none"
 
-        items_html += f'''
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
-            background: {bg};
-            border: 1px solid {border};
-            border-radius: 10px;
-            transition: all 0.3s ease;
-            box-shadow: {glow};
-        ">
-            <span style="font-size: 1rem;">{icon}</span>
-            <span style="
-                color: {text_color};
-                font-size: 0.75rem;
-                font-weight: 600;
-                letter-spacing: 0.05em;
-                text-transform: uppercase;
-            ">{label}</span>
-        </div>
-        '''
+        # Single-line HTML to avoid rendering issues
+        items_html += f'<div style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 1rem;background:{bg};border:1px solid {border};border-radius:10px;transition:all 0.3s ease;box-shadow:{glow};"><span style="font-size:1rem;">{icon}</span><span style="color:{text_color};font-size:0.75rem;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;">{label}</span></div>'
 
-    st.markdown(f'''
-    <div style="
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-bottom: 1.5rem;
-    ">{items_html}</div>
-    ''', unsafe_allow_html=True)
+    row_html = f'<div style="display:flex;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.5rem;">{items_html}</div>'
+    st.markdown(row_html, unsafe_allow_html=True)
 
 
 def render_section_title(title: str, subtitle: str = "", icon: str = ""):
     """
     Render an enhanced section title with optional icon and subtitle.
     """
-    icon_html = f'<span style="margin-right: 0.5rem;">{icon}</span>' if icon else ""
-    subtitle_html = f'<p style="color: {COLORS["text_muted"]}; font-size: 0.85rem; margin: 0.25rem 0 0 0;">{subtitle}</p>' if subtitle else ""
+    icon_html = f'<span style="margin-right:0.5rem;">{icon}</span>' if icon else ""
+    subtitle_html = f'<div style="color:{COLORS["text_muted"]};font-size:0.85rem;margin:0.25rem 0 0 0;">{subtitle}</div>' if subtitle else ""
 
-    st.markdown(f'''
-    <div style="margin: 2rem 0 1.25rem 0;">
-        <h3 style="
-            color: {COLORS["text_primary"]};
-            font-size: 1.15rem;
-            font-weight: 600;
-            margin: 0;
-            display: flex;
-            align-items: center;
-        ">
-            {icon_html}
-            {title}
-        </h3>
-        {subtitle_html}
-    </div>
-    ''', unsafe_allow_html=True)
+    # Single-line HTML to avoid rendering issues
+    section_html = f'<div style="margin:2rem 0 1.25rem 0;"><h3 style="color:{COLORS["text_primary"]};font-size:1.15rem;font-weight:600;margin:0;display:flex;align-items:center;">{icon_html}{title}</h3>{subtitle_html}</div>'
+    st.markdown(section_html, unsafe_allow_html=True)
 
 
 def render_feature_card(
