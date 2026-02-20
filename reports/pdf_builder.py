@@ -110,7 +110,11 @@ class PizzaOpsPDF:
         """Add a paragraph of text."""
         self.pdf.set_font('Helvetica', '', 11)
         self.pdf.set_text_color(*self.dark)
-        self.pdf.multi_cell(0, 6, text)
+        # Ensure x position is at left margin
+        self.pdf.set_x(self.pdf.l_margin)
+        # Wrap long words to prevent overflow
+        wrapped_text = self.wrap_long_words(text, 60)
+        self.pdf.multi_cell(0, 6, wrapped_text)
         self.pdf.ln(3)
 
     def add_kpi_row(self, kpis: List[Dict]):
@@ -120,13 +124,20 @@ class PizzaOpsPDF:
         Args:
             kpis: List of dicts with 'label', 'value', 'status' keys
         """
-        box_width = 45
-        box_height = 25
-        start_x = self.pdf.l_margin  # Use left margin instead of hardcoded value
-        start_y = self.pdf.get_y()   # Store starting y position ONCE
+        # Calculate box width dynamically based on page width and number of KPIs
+        num_kpis = min(len(kpis), 4)  # Max 4 KPIs per row
+        if num_kpis == 0:
+            return
 
-        for i, kpi in enumerate(kpis[:4]):  # Max 4 KPIs per row
-            x = start_x + (i * (box_width + 5))
+        effective_width = self.pdf.w - self.pdf.l_margin - self.pdf.r_margin
+        gap = 5
+        box_width = (effective_width - (num_kpis - 1) * gap) / num_kpis
+        box_height = 25
+        start_x = self.pdf.l_margin
+        start_y = self.pdf.get_y()
+
+        for i, kpi in enumerate(kpis[:num_kpis]):
+            x = start_x + (i * (box_width + gap))
 
             # Determine color based on status
             status = kpi.get('status', 'neutral')
@@ -174,7 +185,7 @@ class PizzaOpsPDF:
             return
 
         # --- Defensive Column Handling ---
-        MIN_COL_WIDTH = 15  # Minimum width in mm for a column to be readable
+        MIN_COL_WIDTH = 25  # Minimum width in mm for a column to be readable
         max_cols_that_can_fit = int(effective_page_width / MIN_COL_WIDTH)
         
         df_display = data
@@ -245,8 +256,12 @@ class PizzaOpsPDF:
         self.pdf.set_text_color(*self.dark)
 
         for item in items:
+            # Reset x position to left margin
+            self.pdf.set_x(self.pdf.l_margin)
             self.pdf.cell(5, 6, chr(149), ln=False)  # Bullet character
-            self.pdf.multi_cell(0, 6, f" {item}")
+            # Wrap long words and render
+            wrapped_item = self.wrap_long_words(str(item), 50)
+            self.pdf.multi_cell(0, 6, f" {wrapped_item}")
 
         self.pdf.ln(3)
 
@@ -519,16 +534,21 @@ def generate_recommendations_pdf(
                 pdf.add_subsection_header(priority_labels.get(priority, priority.upper()))
 
                 for rec in priority_recs:
-                    title = rec.get("title", "Recommendation")
-                    action = pdf.wrap_long_words(rec.get("action", "N/A"))
-                    impact = pdf.wrap_long_words(rec.get("expected_impact", "N/A"))
-                    evidence = pdf.wrap_long_words(rec.get("evidence", "Based on data analysis"))
+                    title = pdf.wrap_long_words(rec.get("title", "Recommendation"), 40)
+                    action = pdf.wrap_long_words(rec.get("action", "N/A"), 40)
+                    impact = pdf.wrap_long_words(rec.get("expected_impact", "N/A"), 40)
+                    evidence = pdf.wrap_long_words(rec.get("evidence", "Based on data analysis"), 40)
 
+                    # Reset position to left margin before each recommendation
+                    pdf.pdf.set_x(pdf.pdf.l_margin)
                     pdf.add_paragraph(f"{title}")
                     pdf.pdf.set_font('Helvetica', '', 10)
                     pdf.pdf.set_text_color(*pdf.gray)
+                    pdf.pdf.set_x(pdf.pdf.l_margin)
                     pdf.pdf.multi_cell(0, 5, f"Action: {action}")
+                    pdf.pdf.set_x(pdf.pdf.l_margin)
                     pdf.pdf.multi_cell(0, 5, f"Expected Impact: {impact}")
+                    pdf.pdf.set_x(pdf.pdf.l_margin)
                     pdf.pdf.multi_cell(0, 5, f"Evidence: {evidence}")
                     pdf.pdf.ln(5)
     else:
