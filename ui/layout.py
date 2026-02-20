@@ -394,97 +394,35 @@ def render_dashboard_header(
     """
     Render a professional dashboard header with logo badge and live indicator.
     Inspired by HealthForecast AI design.
-
-    Args:
-        title: Main title text
-        logo_text: Single letter for logo badge
-        logo_color: Color for the logo (default: primary)
-        is_live: Whether to show live indicator
-        live_text: Text for live indicator
     """
     inject_custom_css()
 
     if logo_color is None:
         logo_color = COLORS["primary"]
 
+    # Build live indicator HTML (single line to avoid rendering issues)
     live_html = ""
     if is_live:
-        live_html = f'''
-        <div style="
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(0, 229, 160, 0.1);
-            border: 1px solid rgba(0, 229, 160, 0.3);
-            border-radius: 20px;
-            padding: 0.35rem 1rem;
-        ">
-            <div style="
-                width: 8px;
-                height: 8px;
-                background: {COLORS["success"]};
-                border-radius: 50%;
-                animation: pulse-glow 2s ease-in-out infinite;
-                box-shadow: 0 0 8px {COLORS["success"]};
-            "></div>
-            <span style="
-                color: {COLORS["success"]};
-                font-size: 0.7rem;
-                font-weight: 600;
-                letter-spacing: 0.1em;
-                text-transform: uppercase;
-            ">{live_text}</span>
-        </div>
-        '''
+        success_color = COLORS["success"]
+        live_html = f'<div style="display:flex;align-items:center;gap:0.5rem;background:rgba(0,229,160,0.1);border:1px solid rgba(0,229,160,0.3);border-radius:20px;padding:0.35rem 1rem;"><div style="width:8px;height:8px;background:{success_color};border-radius:50%;box-shadow:0 0 8px {success_color};"></div><span style="color:{success_color};font-size:0.7rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;">{live_text}</span></div>'
 
-    header_html = f'''
-    <style>
-        @keyframes pulse-glow {{
-            0%, 100% {{ opacity: 1; transform: scale(1); }}
-            50% {{ opacity: 0.6; transform: scale(1.1); }}
-        }}
-    </style>
-    <div style="
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 2rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid rgba(0, 180, 255, 0.15);
-    ">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-            <div style="
-                width: 56px;
-                height: 56px;
-                background: linear-gradient(135deg, {logo_color} 0%, {COLORS["secondary"]} 100%);
-                border-radius: 14px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 1.75rem;
-                font-weight: 800;
-                color: white;
-                box-shadow: 0 8px 25px rgba(0, 180, 255, 0.3);
-                border: 2px solid rgba(255, 255, 255, 0.1);
-            ">{logo_text}</div>
-            <div>
-                <h1 style="
-                    font-size: 1.75rem;
-                    font-weight: 700;
-                    color: {COLORS["text_primary"]};
-                    margin: 0;
-                    line-height: 1.2;
-                ">{title}</h1>
-                <p style="
-                    color: {COLORS["text_muted"]};
-                    font-size: 0.85rem;
-                    margin: 0.25rem 0 0 0;
-                ">Real-time operational insights</p>
-            </div>
-        </div>
-        {live_html}
-    </div>
-    '''
+    # Get colors as variables
+    secondary = COLORS["secondary"]
+    text_primary = COLORS["text_primary"]
+    text_muted = COLORS["text_muted"]
+
+    # Build header HTML
+    header_html = f'''<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(0,180,255,0.15);">
+<div style="display:flex;align-items:center;gap:1rem;">
+<div style="width:56px;height:56px;background:linear-gradient(135deg,{logo_color} 0%,{secondary} 100%);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.75rem;font-weight:800;color:white;box-shadow:0 8px 25px rgba(0,180,255,0.3);border:2px solid rgba(255,255,255,0.1);">{logo_text}</div>
+<div>
+<h1 style="font-size:1.75rem;font-weight:700;color:{text_primary};margin:0;line-height:1.2;">{title}</h1>
+<p style="color:{text_muted};font-size:0.85rem;margin:0.25rem 0 0 0;">Real-time operational insights</p>
+</div>
+</div>
+{live_html}
+</div>'''
+
     st.markdown(header_html, unsafe_allow_html=True)
 
 
