@@ -275,7 +275,11 @@ class PizzaOpsPDF:
 
     def get_output(self) -> bytes:
         """Get the PDF as bytes."""
-        return self.pdf.output()
+        # fpdf2 returns bytearray, convert to bytes for compatibility
+        output = self.pdf.output()
+        if isinstance(output, bytearray):
+            return bytes(output)
+        return output
 
 
 def generate_executive_report(
