@@ -1042,35 +1042,15 @@ def render_dashboard_tab():
 
     if recommendations:
         for i, rec in enumerate(recommendations[:5], 1):
-            priority_color = COLORS['danger'] if rec.get('priority') == 'high' else COLORS['warning'] if rec.get('priority') == 'medium' else COLORS['success']
-            st.markdown(f"""
-            <div style="
-                background: {COLORS['bg_card']};
-                border: 1px solid {COLORS['border']};
-                border-radius: 12px;
-                padding: 1rem;
-                margin-bottom: 0.75rem;
-            ">
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-                    <span style="
-                        background: {priority_color}20;
-                        color: {priority_color};
-                        padding: 0.2rem 0.6rem;
-                        border-radius: 12px;
-                        font-size: 0.75rem;
-                        font-weight: 600;
-                        margin-right: 0.75rem;
-                    ">{rec.get('priority', 'medium').upper()}</span>
-                    <strong style="color: {COLORS['text_primary']};">{rec.get('title', f'Recommendation {i}')}</strong>
-                </div>
-                <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                    {rec.get('description', '')}
-                </p>
-                <p style="color: {COLORS['text_muted']}; margin: 0.5rem 0 0 0; font-size: 0.8rem;">
-                    💰 Expected Impact: {rec.get('impact', 'Improved efficiency')}
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+            priority = rec.get('priority', 'medium')
+            priority_color = COLORS['danger'] if priority == 'high' else COLORS['warning'] if priority == 'medium' else COLORS['success']
+            title = rec.get('title', f'Recommendation {i}')
+            description = rec.get('description', '')
+            impact = rec.get('impact', 'Improved efficiency')
+
+            # Build HTML as single line to avoid rendering issues
+            rec_html = f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};border-radius:12px;padding:1rem;margin-bottom:0.75rem;"><div style="display:flex;align-items:center;margin-bottom:0.5rem;"><span style="background:{priority_color}20;color:{priority_color};padding:0.2rem 0.6rem;border-radius:12px;font-size:0.75rem;font-weight:600;margin-right:0.75rem;">{priority.upper()}</span><strong style="color:{COLORS["text_primary"]};">{title}</strong></div><div style="color:{COLORS["text_secondary"]};margin:0;font-size:0.9rem;">{description}</div><div style="color:{COLORS["text_muted"]};margin:0.5rem 0 0 0;font-size:0.8rem;">💰 Expected Impact: {impact}</div></div>'
+            st.markdown(rec_html, unsafe_allow_html=True)
     else:
         st.info("Upload more data to generate personalized recommendations.")
 
