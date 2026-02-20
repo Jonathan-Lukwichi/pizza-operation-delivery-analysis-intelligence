@@ -672,6 +672,7 @@ def render_hero_header(
     """
     Render a full hero header with gradient background, version badge, and stats.
     Inspired by PizzaOps Dashboard reference design.
+    Mobile-responsive with clamp() for font sizes.
     """
     inject_custom_css()
 
@@ -680,21 +681,21 @@ def render_hero_header(
     text_primary = COLORS["text_primary"]
     text_secondary = COLORS["text_secondary"]
     text_muted = COLORS["text_muted"]
-    success = COLORS["success"]
 
-    # Build stats row
-    stats_html = f'<span style="font-family:monospace;font-size:0.8rem;color:{text_muted};">📅 {today_str} &nbsp;|&nbsp; 📁 {total_records:,} records &nbsp;|&nbsp; 📦 {today_orders:,} orders today</span>' if today_str else ""
+    # Build stats row - wrap on mobile
+    stats_html = f'<div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.75rem;"><span style="font-family:monospace;font-size:clamp(0.65rem,2vw,0.8rem);color:{text_muted};white-space:nowrap;">📅 {today_str}</span><span style="font-family:monospace;font-size:clamp(0.65rem,2vw,0.8rem);color:{text_muted};white-space:nowrap;">📁 {total_records:,} records</span><span style="font-family:monospace;font-size:clamp(0.65rem,2vw,0.8rem);color:{text_muted};white-space:nowrap;">📦 {today_orders:,} today</span></div>' if today_str else ""
 
-    # Live indicator
-    live_html = f'<span style="display:inline-flex;align-items:center;gap:5px;font-size:0.65rem;font-weight:600;padding:2px 8px;border-radius:50px;background:rgba(16,185,129,0.12);color:#34D399;text-transform:uppercase;margin-left:1rem;"><span style="width:6px;height:6px;background:#34D399;border-radius:50%;"></span>LIVE</span>'
+    # Live indicator - smaller on mobile
+    live_html = f'<span style="display:inline-flex;align-items:center;gap:4px;font-size:clamp(0.55rem,1.5vw,0.65rem);font-weight:600;padding:2px 6px;border-radius:50px;background:rgba(16,185,129,0.12);color:#34D399;text-transform:uppercase;margin-left:0.5rem;"><span style="width:5px;height:5px;background:#34D399;border-radius:50%;"></span>LIVE</span>'
 
-    hero_html = f'''<div style="background:linear-gradient(135deg,#111827 0%,#1A1F35 50%,#111827 100%);border:1px solid #1E293B;border-radius:20px;padding:2rem 2.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;">
+    # Responsive padding and font sizes using clamp()
+    hero_html = f'''<div class="hero-header" style="background:linear-gradient(135deg,#111827 0%,#1A1F35 50%,#111827 100%);border:1px solid #1E293B;border-radius:clamp(12px,3vw,20px);padding:clamp(1rem,4vw,2rem) clamp(1rem,4vw,2.5rem);margin-bottom:1.5rem;position:relative;overflow:hidden;">
 <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,{primary},{secondary},#06B6D4,#10B981);border-radius:20px 20px 0 0;"></div>
-<div style="position:absolute;top:-80px;right:-80px;width:250px;height:250px;background:radial-gradient(circle,rgba(59,130,246,0.08) 0%,transparent 70%);border-radius:50%;"></div>
-<div style="display:inline-block;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));border:1px solid rgba(59,130,246,0.25);color:#93C5FD;font-size:0.7rem;font-weight:600;padding:0.25rem 0.75rem;border-radius:50px;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;">🍕 PizzaOps Intelligence v2.0</div>
-<h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:2rem;font-weight:800;color:{text_primary};margin:0;letter-spacing:-0.5px;">{title}{live_html}</h1>
-<p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.95rem;color:{text_secondary};margin:0.3rem 0 0;">{subtitle}</p>
-<div style="margin-top:0.5rem;">{stats_html}</div>
+<div style="position:absolute;top:-80px;right:-80px;width:150px;height:150px;background:radial-gradient(circle,rgba(59,130,246,0.08) 0%,transparent 70%);border-radius:50%;"></div>
+<div style="display:inline-block;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));border:1px solid rgba(59,130,246,0.25);color:#93C5FD;font-size:clamp(0.6rem,1.5vw,0.7rem);font-weight:600;padding:0.2rem 0.6rem;border-radius:50px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.5rem;">🍕 PizzaOps v2.0</div>
+<h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(1.25rem,4vw,2rem);font-weight:800;color:{text_primary};margin:0;letter-spacing:-0.5px;display:flex;flex-wrap:wrap;align-items:center;gap:0.5rem;">{title}{live_html}</h1>
+<p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:clamp(0.8rem,2.5vw,0.95rem);color:{text_secondary};margin:0.3rem 0 0;">{subtitle}</p>
+{stats_html}
 </div>'''
 
     st.markdown(hero_html, unsafe_allow_html=True)
@@ -763,13 +764,13 @@ def render_stage_bar(name: str, actual: float, benchmark: float):
 def render_leaderboard(title: str, subtitle: str, rows: list):
     """
     Render a leaderboard with ranked items.
+    Mobile-responsive with flexible widths.
 
     Args:
         title: Leaderboard title
         subtitle: Subtitle text
-        rows: List of (rank, name, detail, value, max_val, suffix) tuples
+        rows: List of dicts with keys: rank, name, detail, value, progress
     """
-    text_primary = COLORS["text_primary"]
     text_muted = COLORS["text_muted"]
 
     # Rank styling
@@ -781,21 +782,29 @@ def render_leaderboard(title: str, subtitle: str, rows: list):
     default_style = ("rgba(100,116,139,0.1)", text_muted)
 
     # Header
-    header_html = f'<div style="font-size:0.95rem;font-weight:700;color:#E2E8F0;margin-bottom:4px;">{title}</div>'
-    header_html += f'<div style="font-size:0.78rem;color:{text_muted};margin-bottom:1rem;">{subtitle}</div>'
+    header_html = f'<div style="font-size:clamp(0.85rem,2.5vw,0.95rem);font-weight:700;color:#E2E8F0;margin-bottom:4px;">{title}</div>'
+    header_html += f'<div style="font-size:clamp(0.7rem,2vw,0.78rem);color:{text_muted};margin-bottom:1rem;">{subtitle}</div>'
 
     rows_html = ""
-    for rank, name, detail, value, max_val, suffix in rows:
+    for row in rows:
+        rank = row.get("rank", 0)
+        name = row.get("name", "")
+        detail = row.get("detail", "")
+        value = row.get("value", "")
+        progress = row.get("progress", 0)
+
         rbg, rcol = rank_styles.get(rank, default_style)
-        pct = (value / max_val * 100) if max_val else 0
 
-        # Bar color based on performance
-        if suffix == "%":
-            bar_color = COLORS["success"] if value >= 85 else COLORS["warning"] if value >= 70 else COLORS["danger"]
-        else:  # For time (lower is better)
-            bar_color = COLORS["success"] if pct <= 80 else COLORS["warning"] if pct <= 100 else COLORS["danger"]
+        # Bar color based on progress
+        bar_color = COLORS["success"] if progress >= 85 else COLORS["warning"] if progress >= 60 else COLORS["danger"]
 
-        rows_html += f'<div style="display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.8rem;background:rgba(255,255,255,0.02);border-radius:10px;margin-bottom:0.35rem;"><div style="font-family:monospace;font-size:0.82rem;font-weight:700;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:{rbg};color:{rcol};">{rank}</div><div style="flex:0 0 130px;"><div style="font-size:0.82rem;font-weight:600;color:#E2E8F0;">{name}</div><div style="font-size:0.7rem;color:{text_muted};">{detail}</div></div><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{pct}%;background:{bar_color};border-radius:3px;"></div></div><div style="font-family:monospace;font-size:0.82rem;font-weight:600;color:{bar_color};min-width:45px;text-align:right;">{value:.1f}{suffix}</div></div>'
+        # Mobile-responsive row with flex-wrap
+        rows_html += f'''<div class="leaderboard-row" style="display:flex;align-items:center;gap:clamp(0.4rem,2vw,0.7rem);padding:clamp(0.5rem,2vw,0.6rem) clamp(0.5rem,2vw,0.8rem);background:rgba(255,255,255,0.02);border-radius:10px;margin-bottom:0.35rem;flex-wrap:wrap;">
+<div class="rank-badge" style="font-family:monospace;font-size:clamp(0.7rem,2vw,0.82rem);font-weight:700;width:clamp(22px,6vw,26px);height:clamp(22px,6vw,26px);display:flex;align-items:center;justify-content:center;border-radius:8px;background:{rbg};color:{rcol};flex-shrink:0;">{rank}</div>
+<div style="flex:1 1 80px;min-width:60px;"><div class="name" style="font-size:clamp(0.75rem,2vw,0.82rem);font-weight:600;color:#E2E8F0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{name}</div><div class="detail" style="font-size:clamp(0.6rem,1.5vw,0.7rem);color:{text_muted};">{detail}</div></div>
+<div class="progress-bar" style="flex:1 1 60px;min-width:40px;height:clamp(4px,1vw,6px);background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{progress}%;background:{bar_color};border-radius:3px;"></div></div>
+<div class="value" style="font-family:monospace;font-size:clamp(0.7rem,2vw,0.82rem);font-weight:600;color:{bar_color};min-width:40px;text-align:right;flex-shrink:0;">{value}</div>
+</div>'''
 
     st.markdown(header_html + rows_html, unsafe_allow_html=True)
 
@@ -803,33 +812,46 @@ def render_leaderboard(title: str, subtitle: str, rows: list):
 def render_channel_stats(channels: list):
     """
     Render order channel breakdown.
+    Mobile-responsive with wrapping.
 
     Args:
-        channels: List of (name, percentage, color) tuples
+        channels: List of dicts with keys: name, pct, count (optional: color)
     """
     text_secondary = COLORS["text_secondary"]
+    primary = COLORS["primary"]
+
+    # Color palette for channels
+    colors = [COLORS["primary"], COLORS["success"], COLORS["warning"], COLORS["secondary"]]
 
     items_html = ""
-    for name, pct, color in channels:
-        items_html += f'<div style="flex:1;text-align:center;"><div style="font-family:monospace;font-size:1.25rem;font-weight:700;color:{color};">{pct:.0f}%</div><div style="font-size:0.7rem;color:{text_secondary};margin-top:2px;">{name}</div></div>'
+    for i, channel in enumerate(channels):
+        name = channel.get("name", "Unknown")
+        pct = channel.get("pct", 0)
+        color = channel.get("color", colors[i % len(colors)])
 
-    container_html = f'<div style="display:flex;gap:10px;padding:1rem 0;">{items_html}</div>'
+        items_html += f'<div style="flex:1 1 60px;text-align:center;min-width:50px;"><div style="font-family:monospace;font-size:clamp(1rem,3vw,1.25rem);font-weight:700;color:{color};">{pct:.0f}%</div><div style="font-size:clamp(0.6rem,1.8vw,0.7rem);color:{text_secondary};margin-top:2px;">{name}</div></div>'
+
+    container_html = f'<div style="display:flex;flex-wrap:wrap;gap:clamp(6px,2vw,10px);padding:0.75rem 0;justify-content:center;">{items_html}</div>'
     st.markdown(container_html, unsafe_allow_html=True)
 
 
 def render_complaint_breakdown(reasons: list):
     """
     Render complaint reasons breakdown with mini progress bars.
+    Mobile-responsive.
 
     Args:
-        reasons: List of (reason, count, total) tuples
+        reasons: List of dicts with keys: name, count, pct
     """
     text_primary = COLORS["text_primary"]
     danger = COLORS["danger"]
 
     html = ""
-    for reason, count, total in reasons:
-        pct = (count / total * 100) if total > 0 else 0
-        html += f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="flex:1;font-size:0.8rem;color:{text_primary};">{reason}</div><div style="width:80px;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{pct}%;background:{danger};border-radius:3px;"></div></div><div style="font-family:monospace;font-size:0.75rem;color:#FB7185;min-width:25px;text-align:right;">{count}</div></div>'
+    for reason in reasons:
+        name = reason.get("name", "Unknown")
+        count = reason.get("count", 0)
+        pct = reason.get("pct", 0)
+
+        html += f'<div style="display:flex;align-items:center;gap:clamp(4px,2vw,8px);margin-bottom:6px;flex-wrap:wrap;"><div style="flex:1 1 80px;font-size:clamp(0.7rem,2vw,0.8rem);color:{text_primary};min-width:60px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{name}</div><div style="flex:0 0 clamp(50px,15vw,80px);height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{pct}%;background:{danger};border-radius:3px;"></div></div><div style="font-family:monospace;font-size:clamp(0.65rem,1.8vw,0.75rem);color:#FB7185;min-width:20px;text-align:right;">{count}</div></div>'
 
     st.markdown(html, unsafe_allow_html=True)

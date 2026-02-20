@@ -1723,5 +1723,262 @@ button, input, select, textarea, .tech-card, [data-testid="stMetric"] {
     transform: translateY(-2px);
     box-shadow: 0 0 25px rgba(0, 180, 255, 0.5);
 }
+
+/* ===== MOBILE RESPONSIVE: HERO HEADER ===== */
+.hero-header {
+    padding: 1.5rem;
+    border-radius: 16px;
+}
+
+@media (max-width: 768px) {
+    .hero-header {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+
+    .hero-header h1 {
+        font-size: 1.5rem !important;
+        line-height: 1.3 !important;
+    }
+
+    .hero-header .stats-row {
+        flex-wrap: wrap !important;
+        gap: 0.5rem !important;
+    }
+
+    .hero-header .stat-item {
+        flex: 1 1 calc(50% - 0.5rem) !important;
+        min-width: 100px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-header {
+        padding: 0.875rem;
+    }
+
+    .hero-header h1 {
+        font-size: 1.25rem !important;
+    }
+
+    .hero-header .stat-item {
+        flex: 1 1 100% !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: LEADERBOARD ===== */
+.leaderboard-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.leaderboard-row {
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .leaderboard-row {
+        padding: 0.625rem;
+        flex-wrap: wrap;
+    }
+
+    .leaderboard-row .rank-badge {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .leaderboard-row .name {
+        font-size: 0.875rem !important;
+    }
+
+    .leaderboard-row .detail {
+        font-size: 0.7rem !important;
+    }
+
+    .leaderboard-row .value {
+        font-size: 0.875rem !important;
+    }
+
+    .leaderboard-row .progress-bar {
+        height: 4px !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: STAGE BARS ===== */
+.stage-bar-container {
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 480px) {
+    .stage-bar-container {
+        margin-bottom: 0.5rem;
+    }
+
+    .stage-bar-container .stage-name {
+        font-size: 0.8rem !important;
+    }
+
+    .stage-bar-container .stage-values {
+        font-size: 0.75rem !important;
+    }
+
+    .stage-bar-container .progress-track {
+        height: 6px !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: ALERT CARDS ===== */
+.alert-card-custom {
+    padding: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .alert-card-custom {
+        padding: 0.75rem;
+    }
+
+    .alert-card-custom .alert-title {
+        font-size: 0.875rem !important;
+    }
+
+    .alert-card-custom .alert-desc {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: CHANNEL/COMPLAINT STATS ===== */
+.stats-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .stats-breakdown .stat-row {
+        padding: 0.5rem 0;
+    }
+
+    .stats-breakdown .stat-name {
+        font-size: 0.8rem !important;
+    }
+
+    .stats-breakdown .stat-value {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: KPI GRID ===== */
+/* 2 columns on tablet, 1 on phone */
+@media (max-width: 768px) and (min-width: 481px) {
+    [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) > [data-testid="column"] {
+        width: 100% !important;
+        flex: none !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: CHARTS ===== */
+@media (max-width: 640px) {
+    /* Make Plotly charts shorter on mobile */
+    [data-testid="stPlotlyChart"] {
+        min-height: 250px !important;
+    }
+
+    /* Reduce chart margins */
+    .js-plotly-plot .plotly .main-svg {
+        overflow: visible !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: SECTION TITLES ===== */
+@media (max-width: 480px) {
+    .section-title-container h3 {
+        font-size: 1rem !important;
+    }
+
+    .section-title-container .subtitle {
+        font-size: 0.75rem !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: TABS SCROLLABLE ===== */
+@media (max-width: 640px) {
+    .stTabs [data-baseweb="tab-list"] {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+        padding-bottom: 0.25rem !important;
+    }
+
+    .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .stTabs [data-baseweb="tab"] {
+        flex-shrink: 0 !important;
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.8rem !important;
+    }
+}
+
+/* ===== MOBILE RESPONSIVE: DATAFRAMES ===== */
+@media (max-width: 640px) {
+    [data-testid="stDataFrame"] {
+        font-size: 0.75rem !important;
+    }
+
+    [data-testid="stDataFrame"] th,
+    [data-testid="stDataFrame"] td {
+        padding: 0.5rem !important;
+    }
+}
+
+/* ===== TOUCH-FRIENDLY IMPROVEMENTS ===== */
+@media (pointer: coarse) {
+    /* Larger touch targets for mobile */
+    .stButton > button {
+        min-height: 48px !important;
+        min-width: 48px !important;
+    }
+
+    [data-baseweb="select"] > div {
+        min-height: 48px !important;
+    }
+
+    .stCheckbox label,
+    .stRadio label {
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+    }
+
+    /* Increase spacing between interactive elements */
+    .stButton {
+        margin-bottom: 0.5rem !important;
+    }
+}
+
+/* ===== HIDE SCROLLBARS ON MOBILE (cleaner look) ===== */
+@media (max-width: 768px) {
+    ::-webkit-scrollbar {
+        width: 4px !important;
+        height: 4px !important;
+    }
+}
+
+/* ===== PREVENT HORIZONTAL SCROLL ===== */
+html, body, .main, [data-testid="stAppViewContainer"] {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+}
 </style>
 """
