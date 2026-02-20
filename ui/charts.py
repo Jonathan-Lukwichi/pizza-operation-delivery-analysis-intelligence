@@ -1054,3 +1054,241 @@ def kpi_gauge_with_target(
     fig = apply_plotly_theme(fig)
     fig.update_layout(height=height)
     return fig
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW DASHBOARD CHARTS - Inspired by reference dashboards
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def dual_axis_trend_chart(
+    df: pd.DataFrame,
+    x: str,
+    y_bar: str,
+    y_line: str,
+    title: str = "Dual-Axis Trend",
+    y_bar_name: str = "Orders",
+    y_line_name: str = "On-Time %",
+    target_line: float = None,
+    height: int = 400
+) -> go.Figure:
+    """
+    Create a dual-axis chart with bars (primary) and line (secondary).
+    """
+    from plotly.subplots import make_subplots
+
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Bar chart (primary y-axis)
+    fig.add_trace(
+        go.Bar(
+            x=df[x],
+            y=df[y_bar],
+            name=y_bar_name,
+            marker=dict(
+                color=df[y_bar],
+                colorscale=[[0, "#1E3A5F"], [0.5, "#3B82F6"], [1, "#93C5FD"]],
+                cornerradius=6
+            ),
+            opacity=0.85,
+            hovertemplate=f"<b>%{{x}}</b><br>{y_bar_name}: %{{y}}<extra></extra>"
+        ),
+        secondary_y=False
+    )
+
+    # Line chart (secondary y-axis)
+    fig.add_trace(
+        go.Scatter(
+            x=df[x],
+            y=df[y_line],
+            name=y_line_name,
+            mode="lines+markers",
+            line=dict(color=COLORS["success"], width=3, shape="spline"),
+            marker=dict(size=6, color=COLORS["success"], line=dict(width=2, color="#0A0E1A")),
+            hovertemplate=f"<b>%{{x}}</b><br>{y_line_name}: %{{y:.1f}}%<extra></extra>"
+        ),
+        secondary_y=True
+    )
+
+    # Target line
+    if target_line is not None:
+        fig.add_hline(
+            y=target_line,
+            line_dash="dot",
+            line_color=COLORS["warning"],
+            line_width=1,
+            annotation_text=f"Target {target_line}%",
+            annotation_font_color=COLORS["warning"],
+            secondary_y=True
+        )
+
+    fig.update_layout(
+        title=title,
+        showlegend=True,
+        legend=dict(x=0, y=1.12, orientation="h")
+    )
+    fig.update_yaxes(title_text=y_bar_name, secondary_y=False, gridcolor="rgba(30,41,59,0.3)")
+    fig.update_yaxes(title_text=y_line_name, secondary_y=True, gridcolor="rgba(30,41,59,0.0)", range=[50, 105])
+
+    fig = apply_plotly_theme(fig)
+    fig.update_layout(height=height)
+    return fig
+
+
+def hourly_heatmap_chart(
+    df: pd.DataFrame,
+    date_col: str = None,
+    hour_col: str = None,
+    title: str = "Hourly Order Volume — Last 7 Days",
+    height: int = 400
+) -> go.Figure:
+    """
+    Create a heatmap showing order volume by hour and date.
+
+    If date_col and hour_col are None, assumes df is already pivoted
+    with dates as index and hours as columns.
+    """
+    # Check if data is already pivoted (from get_hourly_heatmap_data)
+    if date_col is None and hour_col is None:
+        pivot = df
+    else:
+        hourly = df.groupby([date_col, hour_col]).size().reset_index(name="count")
+        pivot = hourly.pivot_table(index=date_col, columns=hour_col, values="count", fill_value=0)
+
+    # Format column labels as hours
+    x_labels = [f"{h}:00" if isinstance(h, int) else str(h) for h in pivot.columns]
+    y_labels = [str(d)[-5:] if len(str(d)) > 5 else str(d) for d in pivot.index]
+
+    fig = go.Figure(go.Heatmap(
+        z=pivot.values,
+        x=x_labels,
+        y=y_labels,
+        colorscale=[[0, "#0A0E1A"], [0.25, "#1E3A5F"], [0.5, "#2563EB"], [0.75, "#3B82F6"], [1, "#93C5FD"]],
+        hovertemplate="<b>%{y}</b> at %{x}<br>Orders: %{z}<extra></extra>",
+        colorbar=dict(title=dict(text="Orders", font=dict(color="#94A3B8", size=11)), tickfont=dict(color="#64748B", size=10), len=0.8)
+    ))
+
+    fig.update_layout(title=title, xaxis=dict(title="Hour"), yaxis=dict(title="Date"))
+    fig = apply_plotly_theme(fig)
+    fig.update_layout(height=height)
+    return fig
+
+
+def stage_comparison_chart(
+    stage_names: List[str],
+    actuals: List[float],
+    benchmarks: List[float],
+    title: str = "Pipeline Stage Performance",
+    height: int = 400
+) -> go.Figure:
+    """Create a grouped bar chart comparing actual vs benchmark for each stage."""
+    status_colors = [
+        COLORS["success"] if a <= b * 1.1 else COLORS["warning"] if a <= b * 1.3 else COLORS["danger"]
+        for a, b in zip(actuals, benchmarks)
+    ]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=stage_names, y=benchmarks, name="Benchmark",
+        marker=dict(color="rgba(148,163,184,0.15)", line=dict(color="#475569", width=1), cornerradius=8)
+    ))
+    fig.add_trace(go.Bar(
+        x=stage_names, y=actuals, name="Actual",
+        marker=dict(color=status_colors, cornerradius=8),
+        text=[f"{a:.1f}m" for a in actuals], textposition="outside",
+        textfont=dict(color="#E2E8F0", size=12, family="JetBrains Mono")
+    ))
+
+    fig.update_layout(title=title, barmode="group", legend=dict(x=0, y=1.12, orientation="h"))
+    fig = apply_plotly_theme(fig)
+    fig.update_layout(height=height)
+    return fig
+
+
+def performance_radar_chart(
+    categories: List[str],
+    values: List[float],
+    target: float = 80,
+    title: str = "Performance Radar",
+    height: int = 450
+) -> go.Figure:
+    """Create a radar chart showing normalized scores across multiple dimensions."""
+    categories_closed = categories + [categories[0]]
+    values_closed = values + [values[0]]
+    target_values = [target] * len(categories_closed)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatterpolar(
+        r=values_closed, theta=categories_closed, fill="toself",
+        fillcolor="rgba(59,130,246,0.15)", line=dict(color=COLORS["primary"], width=2),
+        marker=dict(size=8, color=COLORS["primary"], line=dict(width=2, color="#0A0E1A")),
+        name="Actual", hovertemplate="<b>%{theta}</b><br>Score: %{r:.0f}/100<extra></extra>"
+    ))
+    fig.add_trace(go.Scatterpolar(
+        r=target_values, theta=categories_closed,
+        line=dict(color=COLORS["warning"], width=1, dash="dot"),
+        name=f"Target ({target})", hoverinfo="skip"
+    ))
+
+    fig.update_layout(
+        title=title,
+        polar=dict(
+            bgcolor="rgba(0,0,0,0)",
+            radialaxis=dict(visible=True, range=[0, 100], gridcolor="rgba(30,41,59,0.4)", tickfont=dict(size=10, color="#64748B")),
+            angularaxis=dict(gridcolor="rgba(30,41,59,0.4)", tickfont=dict(size=12, color="#CBD5E1"))
+        ),
+        showlegend=True, legend=dict(x=0.82, y=1.1)
+    )
+    fig = apply_plotly_theme(fig)
+    fig.update_layout(height=height)
+    return fig
+
+
+def hourly_volume_chart(
+    df: pd.DataFrame,
+    hour_col: str = "hour_of_day",
+    title: str = "Today's Hourly Volume",
+    height: int = 300
+) -> go.Figure:
+    """Create a bar chart showing orders by hour with peak hours highlighted."""
+    hourly = df.groupby(hour_col).size().reset_index(name="orders")
+    all_hours = pd.DataFrame({hour_col: range(10, 23)})
+    hourly = all_hours.merge(hourly, on=hour_col, how="left").fillna(0)
+    is_peak = hourly[hour_col].apply(lambda h: h in range(11, 15) or h in range(17, 22))
+
+    fig = go.Figure(go.Bar(
+        x=[f"{h}:00" for h in hourly[hour_col]], y=hourly["orders"],
+        marker=dict(color=[COLORS["warning"] if p else "rgba(59,130,246,0.4)" for p in is_peak], cornerradius=6),
+        text=hourly["orders"].astype(int), textposition="outside",
+        textfont=dict(color="#E2E8F0", size=11, family="JetBrains Mono"),
+        hovertemplate="<b>%{x}</b><br>Orders: %{y}<extra></extra>"
+    ))
+
+    fig.update_layout(title=title)
+    fig = apply_plotly_theme(fig)
+    fig.update_layout(height=height)
+    return fig
+
+
+def area_ontime_chart(
+    df: pd.DataFrame,
+    area_col: str = "delivery_area",
+    ontime_col: str = "delivery_target_met",
+    target: float = 85,
+    title: str = "On-Time Rate by Zone",
+    height: int = 350
+) -> go.Figure:
+    """Create a horizontal bar chart showing on-time rate by area."""
+    area_stats = df.groupby(area_col).agg(on_time=(ontime_col, lambda x: x.mean() * 100)).reset_index().sort_values("on_time", ascending=True)
+    bar_colors = [COLORS["success"] if x >= target else COLORS["warning"] if x >= 70 else COLORS["danger"] for x in area_stats["on_time"]]
+
+    fig = go.Figure(go.Bar(
+        y=area_stats[area_col], x=area_stats["on_time"], orientation="h",
+        marker=dict(color=bar_colors, cornerradius=8),
+        text=[f"{v:.1f}%" for v in area_stats["on_time"]], textposition="inside",
+        textfont=dict(color="white", size=12, family="JetBrains Mono")
+    ))
+    fig.add_vline(x=target, line_dash="dot", line_color=COLORS["warning"], line_width=1, annotation_text=f"{target}% Target", annotation_font_color=COLORS["warning"])
+    fig.update_layout(title=title, xaxis=dict(range=[0, 105], title="On-Time %"))
+    fig = apply_plotly_theme(fig)
+    fig.update_layout(height=height)
+    return fig

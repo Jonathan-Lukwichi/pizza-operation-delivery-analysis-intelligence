@@ -656,3 +656,180 @@ def render_metric_with_icon(
         "></div>
     </div>
     ''', unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NEW DASHBOARD COMPONENTS - Inspired by reference dashboards
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def render_hero_header(
+    title: str = "Daily Performance Dashboard",
+    subtitle: str = "Real-time operations analytics for your pizza delivery business",
+    today_str: str = "",
+    total_records: int = 0,
+    today_orders: int = 0
+):
+    """
+    Render a full hero header with gradient background, version badge, and stats.
+    Inspired by PizzaOps Dashboard reference design.
+    """
+    inject_custom_css()
+
+    primary = COLORS["primary"]
+    secondary = COLORS["secondary"]
+    text_primary = COLORS["text_primary"]
+    text_secondary = COLORS["text_secondary"]
+    text_muted = COLORS["text_muted"]
+    success = COLORS["success"]
+
+    # Build stats row
+    stats_html = f'<span style="font-family:monospace;font-size:0.8rem;color:{text_muted};">📅 {today_str} &nbsp;|&nbsp; 📁 {total_records:,} records &nbsp;|&nbsp; 📦 {today_orders:,} orders today</span>' if today_str else ""
+
+    # Live indicator
+    live_html = f'<span style="display:inline-flex;align-items:center;gap:5px;font-size:0.65rem;font-weight:600;padding:2px 8px;border-radius:50px;background:rgba(16,185,129,0.12);color:#34D399;text-transform:uppercase;margin-left:1rem;"><span style="width:6px;height:6px;background:#34D399;border-radius:50%;"></span>LIVE</span>'
+
+    hero_html = f'''<div style="background:linear-gradient(135deg,#111827 0%,#1A1F35 50%,#111827 100%);border:1px solid #1E293B;border-radius:20px;padding:2rem 2.5rem;margin-bottom:1.5rem;position:relative;overflow:hidden;">
+<div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,{primary},{secondary},#06B6D4,#10B981);border-radius:20px 20px 0 0;"></div>
+<div style="position:absolute;top:-80px;right:-80px;width:250px;height:250px;background:radial-gradient(circle,rgba(59,130,246,0.08) 0%,transparent 70%);border-radius:50%;"></div>
+<div style="display:inline-block;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(139,92,246,0.15));border:1px solid rgba(59,130,246,0.25);color:#93C5FD;font-size:0.7rem;font-weight:600;padding:0.25rem 0.75rem;border-radius:50px;text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem;">🍕 PizzaOps Intelligence v2.0</div>
+<h1 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:2rem;font-weight:800;color:{text_primary};margin:0;letter-spacing:-0.5px;">{title}{live_html}</h1>
+<p style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.95rem;color:{text_secondary};margin:0.3rem 0 0;">{subtitle}</p>
+<div style="margin-top:0.5rem;">{stats_html}</div>
+</div>'''
+
+    st.markdown(hero_html, unsafe_allow_html=True)
+
+
+def render_alert_card(icon: str, title: str, description: str, severity: str = "warning"):
+    """
+    Render an individual alert card with severity-based styling.
+
+    Args:
+        icon: Emoji icon
+        title: Alert title
+        description: Alert description
+        severity: "danger" | "warning" | "success" | "info"
+    """
+    bg_map = {"danger": "rgba(244,63,94,0.06)", "warning": "rgba(245,158,11,0.06)", "success": "rgba(16,185,129,0.06)", "info": "rgba(59,130,246,0.06)"}
+    border_map = {"danger": "rgba(244,63,94,0.15)", "warning": "rgba(245,158,11,0.15)", "success": "rgba(16,185,129,0.15)", "info": "rgba(59,130,246,0.15)"}
+
+    bg = bg_map.get(severity, bg_map["info"])
+    border = border_map.get(severity, border_map["info"])
+    text_primary = COLORS["text_primary"]
+    text_secondary = COLORS["text_secondary"]
+
+    alert_html = f'<div style="background:{bg};border:1px solid {border};border-radius:12px;padding:0.9rem 1.1rem;margin-bottom:0.5rem;display:flex;align-items:flex-start;gap:0.7rem;"><span style="font-size:1.05rem;margin-top:2px;">{icon}</span><div><div style="font-size:0.82rem;font-weight:600;color:{text_primary};margin-bottom:2px;">{title}</div><div style="font-size:0.75rem;color:{text_secondary};">{description}</div></div></div>'
+    st.markdown(alert_html, unsafe_allow_html=True)
+
+
+def render_stage_bar(name: str, actual: float, benchmark: float):
+    """
+    Render a horizontal progress bar showing actual vs benchmark.
+
+    Args:
+        name: Stage name
+        actual: Actual value (minutes)
+        benchmark: Benchmark value (minutes)
+    """
+    # Determine color based on performance
+    if actual <= benchmark * 1.1:
+        color = COLORS["success"]
+    elif actual <= benchmark * 1.3:
+        color = COLORS["warning"]
+    else:
+        color = COLORS["danger"]
+
+    # Calculate widths (max 25 minutes for scale)
+    max_val = 25
+    actual_pct = min((actual / max_val) * 100, 100)
+    benchmark_pct = min((benchmark / max_val) * 100, 100)
+
+    text_primary = COLORS["text_primary"]
+    text_muted = COLORS["text_muted"]
+
+    bar_html = f'''<div style="margin-bottom:12px;">
+<div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+<span style="font-size:0.82rem;font-weight:600;color:{text_primary};">{name}</span>
+<span style="font-family:monospace;font-size:0.82rem;color:{color};">{actual:.1f}m <span style="color:{text_muted};">/ {benchmark:.0f}m</span></span>
+</div>
+<div style="height:8px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden;position:relative;">
+<div style="position:absolute;width:{benchmark_pct}%;height:100%;background:rgba(148,163,184,0.08);border-radius:4px;"></div>
+<div style="height:100%;width:{actual_pct}%;background:{color};border-radius:4px;transition:width 0.8s ease;"></div>
+</div>
+</div>'''
+    st.markdown(bar_html, unsafe_allow_html=True)
+
+
+def render_leaderboard(title: str, subtitle: str, rows: list):
+    """
+    Render a leaderboard with ranked items.
+
+    Args:
+        title: Leaderboard title
+        subtitle: Subtitle text
+        rows: List of (rank, name, detail, value, max_val, suffix) tuples
+    """
+    text_primary = COLORS["text_primary"]
+    text_muted = COLORS["text_muted"]
+
+    # Rank styling
+    rank_styles = {
+        1: ("rgba(245,158,11,0.15)", "#FCD34D"),  # Gold
+        2: ("rgba(148,163,184,0.15)", "#CBD5E1"),  # Silver
+        3: ("rgba(180,83,9,0.15)", "#FBBF24")      # Bronze
+    }
+    default_style = ("rgba(100,116,139,0.1)", text_muted)
+
+    # Header
+    header_html = f'<div style="font-size:0.95rem;font-weight:700;color:#E2E8F0;margin-bottom:4px;">{title}</div>'
+    header_html += f'<div style="font-size:0.78rem;color:{text_muted};margin-bottom:1rem;">{subtitle}</div>'
+
+    rows_html = ""
+    for rank, name, detail, value, max_val, suffix in rows:
+        rbg, rcol = rank_styles.get(rank, default_style)
+        pct = (value / max_val * 100) if max_val else 0
+
+        # Bar color based on performance
+        if suffix == "%":
+            bar_color = COLORS["success"] if value >= 85 else COLORS["warning"] if value >= 70 else COLORS["danger"]
+        else:  # For time (lower is better)
+            bar_color = COLORS["success"] if pct <= 80 else COLORS["warning"] if pct <= 100 else COLORS["danger"]
+
+        rows_html += f'<div style="display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.8rem;background:rgba(255,255,255,0.02);border-radius:10px;margin-bottom:0.35rem;"><div style="font-family:monospace;font-size:0.82rem;font-weight:700;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:{rbg};color:{rcol};">{rank}</div><div style="flex:0 0 130px;"><div style="font-size:0.82rem;font-weight:600;color:#E2E8F0;">{name}</div><div style="font-size:0.7rem;color:{text_muted};">{detail}</div></div><div style="flex:1;height:6px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{pct}%;background:{bar_color};border-radius:3px;"></div></div><div style="font-family:monospace;font-size:0.82rem;font-weight:600;color:{bar_color};min-width:45px;text-align:right;">{value:.1f}{suffix}</div></div>'
+
+    st.markdown(header_html + rows_html, unsafe_allow_html=True)
+
+
+def render_channel_stats(channels: list):
+    """
+    Render order channel breakdown.
+
+    Args:
+        channels: List of (name, percentage, color) tuples
+    """
+    text_secondary = COLORS["text_secondary"]
+
+    items_html = ""
+    for name, pct, color in channels:
+        items_html += f'<div style="flex:1;text-align:center;"><div style="font-family:monospace;font-size:1.25rem;font-weight:700;color:{color};">{pct:.0f}%</div><div style="font-size:0.7rem;color:{text_secondary};margin-top:2px;">{name}</div></div>'
+
+    container_html = f'<div style="display:flex;gap:10px;padding:1rem 0;">{items_html}</div>'
+    st.markdown(container_html, unsafe_allow_html=True)
+
+
+def render_complaint_breakdown(reasons: list):
+    """
+    Render complaint reasons breakdown with mini progress bars.
+
+    Args:
+        reasons: List of (reason, count, total) tuples
+    """
+    text_primary = COLORS["text_primary"]
+    danger = COLORS["danger"]
+
+    html = ""
+    for reason, count, total in reasons:
+        pct = (count / total * 100) if total > 0 else 0
+        html += f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div style="flex:1;font-size:0.8rem;color:{text_primary};">{reason}</div><div style="width:80px;height:5px;background:rgba(255,255,255,0.05);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{pct}%;background:{danger};border-radius:3px;"></div></div><div style="font-family:monospace;font-size:0.75rem;color:#FB7185;min-width:25px;text-align:right;">{count}</div></div>'
+
+    st.markdown(html, unsafe_allow_html=True)
