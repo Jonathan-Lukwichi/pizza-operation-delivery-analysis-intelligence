@@ -68,7 +68,7 @@ df = st.session_state.df.copy()
 # Get local analytics (works offline)
 analytics = get_local_analytics()
 recommendations = analytics.generate_recommendations(df)
-kpis = analytics.get_kpis(df)
+kpis = analytics.get_kpis(df)  # Used for checklist generation
 
 # Status indicators row
 render_status_row([
@@ -97,35 +97,11 @@ st.markdown(f'''
 
 spacer("0.5rem")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# QUICK SUMMARY
-# ══════════════════════════════════════════════════════════════════════════════
-render_section_title("Quick Summary", "Current performance at a glance", "📊")
-
-# Extract colors to local variables
+# Extract colors to local variables for use below
 text_secondary = COLORS["text_secondary"]
 text_muted = COLORS["text_muted"]
 text_primary = COLORS["text_primary"]
 primary_color = COLORS["primary"]
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    on_time_status = COLORS["success"] if kpis.on_time_rate >= config.on_time_target_pct else COLORS["danger"]
-    on_time_html = f'<div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%); border: 1px solid {on_time_status}30; border-radius: 16px; padding: 1.25rem; text-align: center; backdrop-filter: blur(12px);"><p style="color: {text_secondary}; margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">ON-TIME RATE</p><h2 style="background: linear-gradient(135deg, #FFFFFF 0%, {on_time_status} 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0.75rem 0; font-size: 2rem; font-weight: 800;">{kpis.on_time_rate:.1f}%</h2><p style="color: {text_muted}; margin: 0; font-size: 0.8rem;">Target: {config.on_time_target_pct}%</p></div>'
-    st.markdown(on_time_html, unsafe_allow_html=True)
-
-with col2:
-    complaint_status = COLORS["success"] if kpis.complaint_rate < config.complaint_target_pct else COLORS["danger"]
-    complaint_html = f'<div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%); border: 1px solid {complaint_status}30; border-radius: 16px; padding: 1.25rem; text-align: center; backdrop-filter: blur(12px);"><p style="color: {text_secondary}; margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">COMPLAINT RATE</p><h2 style="background: linear-gradient(135deg, #FFFFFF 0%, {complaint_status} 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0.75rem 0; font-size: 2rem; font-weight: 800;">{kpis.complaint_rate:.1f}%</h2><p style="color: {text_muted}; margin: 0; font-size: 0.8rem;">Target: &lt;{config.complaint_target_pct}%</p></div>'
-    st.markdown(complaint_html, unsafe_allow_html=True)
-
-with col3:
-    time_status = COLORS["success"] if kpis.avg_delivery_time <= config.delivery_target_minutes else COLORS["danger"]
-    delivery_html = f'<div style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.8) 100%); border: 1px solid {time_status}30; border-radius: 16px; padding: 1.25rem; text-align: center; backdrop-filter: blur(12px);"><p style="color: {text_secondary}; margin: 0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em;">AVG DELIVERY</p><h2 style="background: linear-gradient(135deg, #FFFFFF 0%, {time_status} 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0.75rem 0; font-size: 2rem; font-weight: 800;">{kpis.avg_delivery_time:.1f} min</h2><p style="color: {text_muted}; margin: 0; font-size: 0.8rem;">Target: {config.delivery_target_minutes} min</p></div>'
-    st.markdown(delivery_html, unsafe_allow_html=True)
-
-spacer("1.5rem")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PRIORITIZED RECOMMENDATIONS (LOCAL)

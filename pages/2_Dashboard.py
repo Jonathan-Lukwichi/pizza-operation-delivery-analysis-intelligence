@@ -1,7 +1,8 @@
 """
-Page: Dashboard
-Purpose: Comprehensive operational dashboard with KPIs, trends, alerts, and leaderboards
+Page: Analytics
+Purpose: Deep dive analytics - trends, stage analysis, area performance, leaderboards
 Works: 100% offline (Lite mode)
+Note: KPIs are on the Home page - this page is for detailed analysis only
 """
 
 import streamlit as st
@@ -21,7 +22,7 @@ from ui.layout import (
     render_hero_header, render_alert_card, render_stage_bar,
     render_leaderboard, render_channel_stats, render_complaint_breakdown
 )
-from ui.metrics_cards import render_kpi_card
+# KPIs removed - now shown only on Home page
 from ui.theme import COLORS, apply_plotly_theme
 from ui.filters import render_global_filters, apply_filters
 from ui.charts import (
@@ -31,7 +32,7 @@ from ui.charts import (
 
 
 # ── Page Config ──
-st.set_page_config(page_title="Dashboard | PizzaOps", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Analytics | PizzaOps", page_icon="📈", layout="wide")
 
 config = get_config()
 
@@ -68,7 +69,6 @@ df_filtered = apply_filters(df, filters)
 
 # Get local analytics (works offline)
 analytics = get_local_analytics()
-kpis = analytics.get_kpis(df_filtered)
 
 # Get today's date string
 today_str = datetime.now().strftime("%B %d, %Y")
@@ -86,8 +86,8 @@ if "order_date" in df_filtered.columns:
 # HERO HEADER
 # ══════════════════════════════════════════════════════════════════════════════
 render_hero_header(
-    title="Daily Performance Dashboard",
-    subtitle="Real-time operations analytics for your pizza delivery business",
+    title="Analytics & Insights",
+    subtitle="Deep dive into trends, patterns, and performance details",
     today_str=today_str,
     total_records=len(df_filtered),
     today_orders=today_orders
@@ -95,113 +95,8 @@ render_hero_header(
 
 spacer("1rem")
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# KEY PERFORMANCE INDICATORS - 8 KPIs in 2 rows
-# ══════════════════════════════════════════════════════════════════════════════
-render_section_title("Key Metrics", "Real-time operational KPIs", "📊")
-
-# Row 1: 4 KPIs
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    render_kpi_card(
-        title="Total Orders",
-        value=kpis.total_orders,
-        icon="📦",
-        status="neutral"
-    )
-
-with col2:
-    on_time_status = "good" if kpis.on_time_rate >= config.on_time_target_pct else (
-        "warning" if kpis.on_time_rate >= config.on_time_target_pct - 10 else "danger"
-    )
-    render_kpi_card(
-        title="On-Time Rate",
-        value=kpis.on_time_rate,
-        suffix="%",
-        icon="⏱️",
-        status=on_time_status,
-        target=f"Target: {config.on_time_target_pct}%"
-    )
-
-with col3:
-    complaint_status = "good" if kpis.complaint_rate < config.complaint_target_pct else (
-        "warning" if kpis.complaint_rate < config.complaint_target_pct + 5 else "danger"
-    )
-    render_kpi_card(
-        title="Complaint Rate",
-        value=kpis.complaint_rate,
-        suffix="%",
-        icon="⚠️",
-        status=complaint_status,
-        target=f"Target: <{config.complaint_target_pct}%"
-    )
-
-with col4:
-    time_status = "good" if kpis.avg_delivery_time <= config.delivery_target_minutes else (
-        "warning" if kpis.avg_delivery_time <= config.delivery_target_minutes + 5 else "danger"
-    )
-    render_kpi_card(
-        title="Avg Delivery",
-        value=kpis.avg_delivery_time,
-        suffix=" min",
-        icon="🚚",
-        status=time_status,
-        target=f"Target: {config.delivery_target_minutes} min"
-    )
-
-# Row 2: 4 more KPIs
-col5, col6, col7, col8 = st.columns(4)
-
-# Get stage breakdown for additional KPIs
+# Get stage breakdown for analysis tabs
 stage_breakdown = analytics.get_stage_breakdown(df_filtered)
-
-with col5:
-    prep_time = stage_breakdown.get("Dough Prep", 0) + stage_breakdown.get("Styling", 0)
-    render_kpi_card(
-        title="Prep Time",
-        value=round(prep_time, 1),
-        suffix=" min",
-        icon="👨‍🍳",
-        status="good" if prep_time <= 8 else ("warning" if prep_time <= 10 else "danger"),
-        target="Target: <8 min"
-    )
-
-with col6:
-    oven_time = stage_breakdown.get("Oven", 0)
-    render_kpi_card(
-        title="Oven Time",
-        value=round(oven_time, 1),
-        suffix=" min",
-        icon="🔥",
-        status="good" if oven_time <= 10 else ("warning" if oven_time <= 12 else "danger"),
-        target="Target: <10 min"
-    )
-
-with col7:
-    boxing_time = stage_breakdown.get("Boxing", 0)
-    render_kpi_card(
-        title="Boxing Time",
-        value=round(boxing_time, 1),
-        suffix=" min",
-        icon="📦",
-        status="good" if boxing_time <= 2 else ("warning" if boxing_time <= 3 else "danger"),
-        target="Target: <2 min"
-    )
-
-with col8:
-    delivery_time = stage_breakdown.get("Delivery", 0)
-    render_kpi_card(
-        title="Delivery Time",
-        value=round(delivery_time, 1),
-        suffix=" min",
-        icon="🛵",
-        status="good" if delivery_time <= 10 else ("warning" if delivery_time <= 15 else "danger"),
-        target="Target: <10 min"
-    )
-
-spacer("1.5rem")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
