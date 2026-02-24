@@ -94,8 +94,12 @@ class DataCleaner:
         ))
 
     def _is_numeric_column(self, col: str) -> bool:
-        """Check if column is numeric."""
-        return pd.api.types.is_numeric_dtype(self.df[col])
+        """Check if column is numeric (excludes boolean)."""
+        dtype = self.df[col].dtype
+        # Exclude boolean columns - they're technically numeric but shouldn't be treated as such
+        if pd.api.types.is_bool_dtype(dtype):
+            return False
+        return pd.api.types.is_numeric_dtype(dtype)
 
     def _is_datetime_column(self, col: str) -> bool:
         """Check if column is datetime."""
@@ -103,20 +107,37 @@ class DataCleaner:
 
     def _detect_column_type(self, col: str) -> str:
         """Detect the semantic type of a column."""
-        if self._is_datetime_column(col):
-            return "datetime"
-        if self._is_numeric_column(col):
-            return "numeric"
+        dtype = self.df[col].dtype
 
-        # Check for boolean-like values
-        unique_vals = set(str(v).lower().strip() for v in self.df[col].dropna().unique())
-        if unique_vals <= (self.BOOL_TRUE | self.BOOL_FALSE):
+        # Check for boolean dtype first
+        if pd.api.types.is_bool_dtype(dtype):
             return "boolean"
 
+        if self._is_datetime_column(col):
+            return "datetime"
+
+        if self._is_numeric_column(col):
+            # Check if it's actually a binary column (0/1)
+            unique_vals = self.df[col].dropna().unique()
+            if len(unique_vals) <= 2 and set(unique_vals).issubset({0, 1, 0.0, 1.0, True, False}):
+                return "boolean"
+            return "numeric"
+
+        # Check for boolean-like string values
+        try:
+            unique_vals = set(str(v).lower().strip() for v in self.df[col].dropna().unique())
+            if unique_vals and unique_vals <= (self.BOOL_TRUE | self.BOOL_FALSE):
+                return "boolean"
+        except Exception:
+            pass
+
         # Check cardinality for categorical
-        nunique = self.df[col].nunique()
-        if nunique <= 50 or nunique / len(self.df) < 0.05:
-            return "categorical"
+        try:
+            nunique = self.df[col].nunique()
+            if nunique <= 50 or (len(self.df) > 0 and nunique / len(self.df) < 0.05):
+                return "categorical"
+        except Exception:
+            pass
 
         return "text"
 
@@ -134,29 +155,36 @@ class DataCleaner:
         if col not in self.df.columns:
             return self
 
-        missing_count = self.df[col].isna().sum()
+        missing_count = int(self.df[col].isna().sum())
         if missing_count == 0:
             return self
 
-        if strategy == "median":
-            fill_value = self.df[col].median()
-        elif strategy == "mean":
-            fill_value = self.df[col].mean()
-        elif strategy == "zero":
-            fill_value = 0
-        else:
-            fill_value = float(strategy)
+        try:
+            if strategy == "median":
+                fill_value = float(self.df[col].median())
+            elif strategy == "mean":
+                fill_value = float(self.df[col].mean())
+            elif strategy == "zero":
+                fill_value = 0.0
+            else:
+                fill_value = float(strategy)
 
-        self.df[col] = self.df[col].fillna(fill_value)
+            # Handle NaN fill_value (can happen if all values are NaN)
+            if pd.isna(fill_value):
+                fill_value = 0.0
 
-        self._log_action(
-            column=col,
-            action_type="fill_missing",
-            description=f"Filled {missing_count} missing values with {strategy} ({fill_value:.2f})",
-            rows_affected=missing_count,
-            before="NaN",
-            after=fill_value
-        )
+            self.df[col] = self.df[col].fillna(fill_value)
+
+            self._log_action(
+                column=col,
+                action_type="fill_missing",
+                description=f"Filled {missing_count} missing values with {strategy} ({fill_value:.2f})",
+                rows_affected=missing_count,
+                before="NaN",
+                after=fill_value
+            )
+        except Exception as e:
+            self.report.warnings.append(f"Could not fill missing values in {col}: {str(e)}")
 
         return self
 
@@ -213,32 +241,46 @@ class DataCleaner:
         if col not in self.df.columns or not self._is_numeric_column(col):
             return self
 
-        Q1 = self.df[col].quantile(0.25)
-        Q3 = self.df[col].quantile(0.75)
-        IQR = Q3 - Q1
-
-        lower_bound = Q1 - multiplier * IQR
-        upper_bound = Q3 + multiplier * IQR
-
-        # Count outliers
-        outliers_low = (self.df[col] < lower_bound).sum()
-        outliers_high = (self.df[col] > upper_bound).sum()
-        total_outliers = outliers_low + outliers_high
-
-        if total_outliers == 0:
+        # Skip if column is boolean
+        if pd.api.types.is_bool_dtype(self.df[col].dtype):
             return self
 
-        # Cap values
-        self.df[col] = self.df[col].clip(lower=lower_bound, upper=upper_bound)
+        try:
+            # Convert to float to ensure numeric operations work
+            col_data = self.df[col].astype(float)
 
-        self._log_action(
-            column=col,
-            action_type="cap_outlier",
-            description=f"Capped {total_outliers} outliers to [{lower_bound:.2f}, {upper_bound:.2f}]",
-            rows_affected=total_outliers,
-            before=f"{outliers_low} low, {outliers_high} high",
-            after=f"[{lower_bound:.2f}, {upper_bound:.2f}]"
-        )
+            Q1 = col_data.quantile(0.25)
+            Q3 = col_data.quantile(0.75)
+            IQR = float(Q3) - float(Q1)
+
+            # Skip if IQR is zero (constant column)
+            if IQR == 0:
+                return self
+
+            lower_bound = float(Q1) - multiplier * IQR
+            upper_bound = float(Q3) + multiplier * IQR
+
+            # Count outliers
+            outliers_low = int((col_data < lower_bound).sum())
+            outliers_high = int((col_data > upper_bound).sum())
+            total_outliers = outliers_low + outliers_high
+
+            if total_outliers == 0:
+                return self
+
+            # Cap values
+            self.df[col] = col_data.clip(lower=lower_bound, upper=upper_bound)
+
+            self._log_action(
+                column=col,
+                action_type="cap_outlier",
+                description=f"Capped {total_outliers} outliers to [{lower_bound:.2f}, {upper_bound:.2f}]",
+                rows_affected=total_outliers,
+                before=f"{outliers_low} low, {outliers_high} high",
+                after=f"[{lower_bound:.2f}, {upper_bound:.2f}]"
+            )
+        except Exception as e:
+            self.report.warnings.append(f"Could not cap outliers in {col}: {str(e)}")
 
         return self
 
