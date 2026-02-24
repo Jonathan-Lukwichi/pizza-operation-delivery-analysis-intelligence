@@ -28,6 +28,7 @@ from ui.charts import (
 from core.config import get_config
 from core.local_analytics import get_local_analytics
 from core.data_profiler import get_data_profiler
+from core.pipeline import DataPipeline, prepare_data
 
 
 # ── Page Config ──
@@ -54,12 +55,16 @@ def main():
         st.markdown("---")
 
         # ── Data Status ──
-        if "df" in st.session_state and st.session_state.df is not None:
-            st.success(f"✓ Data loaded: {len(st.session_state.df):,} orders")
+        if "df_original" in st.session_state and st.session_state.df_original is not None:
             if st.session_state.get("data_is_clean", False):
-                st.info("Data has been cleaned.")
+                st.success(f"✓ Data ready: {len(st.session_state.df):,} orders")
+                st.info("✨ Data prepared for analysis")
+            elif st.session_state.get("show_manual_cleaning", False):
+                st.warning(f"📊 {len(st.session_state.df_original):,} orders loaded")
+                st.info("🔧 Manual cleaning mode")
             else:
-                st.warning("Data cleaning pending.")
+                st.warning(f"📊 {len(st.session_state.df_original):,} orders loaded")
+                st.info("🚀 Ready for preparation")
         else:
             st.info("📊 Upload data to begin")
 
@@ -70,10 +75,15 @@ def main():
         description="Upload your order data to get started with analytics"
     )
 
-    # ── Conditional Rendering: Upload or Tabs ──
-    if "df" not in st.session_state or st.session_state.df is None:
+    # ── Conditional Rendering: Upload → One-Click Prepare → Tabs ──
+    if "df_original" not in st.session_state or st.session_state.df_original is None:
+        # No data uploaded yet
         render_upload_section()
+    elif not st.session_state.get("data_is_clean", False) and not st.session_state.get("show_manual_cleaning", False):
+        # Data uploaded but not prepared - show one-click option
+        render_one_click_prepare()
     else:
+        # Data is ready (either auto-prepared or manual cleaning in progress)
         # New tabbed interface after data is loaded
         cleaning_tab, eda_tab, dashboard_tab = st.tabs([
             "1. Data Quality & Cleaning",
@@ -102,6 +112,176 @@ def main():
     footer()
 
 
+def render_one_click_prepare():
+    """
+    Render the one-click data preparation interface.
+    Shows pipeline progress and results.
+    """
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, {COLORS['primary']}20 0%, {COLORS['secondary']}10 100%); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; border: 1px solid {COLORS['primary']}30;">
+        <div style="text-align: center;">
+            <h2 style="color: {COLORS['text_primary']}; margin: 0 0 0.5rem 0;">🚀 One-Click Data Preparation</h2>
+            <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 1rem;">Automatically clean, transform, and enrich your data for analysis</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    df = st.session_state.df_original
+    config = get_config()
+
+    # Show data preview
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Rows", f"{len(df):,}")
+    with col2:
+        st.metric("Columns", len(df.columns))
+    with col3:
+        missing_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100)
+        st.metric("Missing Values", f"{missing_pct:.1f}%")
+
+    st.markdown("---")
+
+    # Pipeline description
+    st.markdown("#### What will happen:")
+
+    steps_info = [
+        ("🔍", "Schema Detection", "Auto-detect and map column names to standard format"),
+        ("🏷️", "Column Standardization", "Rename columns for consistent analytics"),
+        ("🧹", "Data Cleaning", "Handle missing values, outliers, and format issues"),
+        ("✨", "Data Enrichment", "Add computed columns (hour, day, peak hours, targets)"),
+        ("✅", "Quality Validation", "Verify data is ready for analysis"),
+    ]
+
+    for icon, title, desc in steps_info:
+        st.markdown(f"""
+        <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding: 0.5rem; background: {COLORS['bg_card']}; border-radius: 8px;">
+            <span style="font-size: 1.5rem; margin-right: 1rem;">{icon}</span>
+            <div>
+                <strong style="color: {COLORS['text_primary']};">{title}</strong>
+                <p style="color: {COLORS['text_muted']}; margin: 0; font-size: 0.85rem;">{desc}</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("")
+
+    # Two options: One-click or Manual
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("🚀 PREPARE DATA AUTOMATICALLY", type="primary", use_container_width=True):
+            # Run pipeline with progress
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            step_container = st.container()
+
+            def update_progress(step_num, total_steps, step_name):
+                progress_bar.progress(step_num / total_steps)
+                status_text.markdown(f"**Step {step_num}/{total_steps}:** {step_name}")
+
+            # Get config as dict for pipeline
+            pipeline_config = {
+                "delivery_target_minutes": config.delivery_target_minutes,
+            }
+
+            # Run the pipeline
+            result = prepare_data(df, pipeline_config, update_progress)
+
+            if result.success:
+                progress_bar.progress(1.0)
+                status_text.markdown("**✅ Preparation Complete!**")
+
+                # Show results
+                with step_container:
+                    st.markdown("---")
+                    st.markdown("#### Pipeline Results")
+
+                    # Step results
+                    for step in result.steps:
+                        if step.status == "completed":
+                            icon = "✅"
+                            color = COLORS['success']
+                        elif step.status == "failed":
+                            icon = "❌"
+                            color = COLORS['danger']
+                        else:
+                            icon = "⏳"
+                            color = COLORS['warning']
+
+                        st.markdown(f"""
+                        <div style="display: flex; align-items: center; padding: 0.5rem; margin-bottom: 0.25rem; background: {color}10; border-radius: 6px; border-left: 3px solid {color};">
+                            <span style="margin-right: 0.75rem;">{icon}</span>
+                            <div style="flex: 1;">
+                                <strong style="color: {COLORS['text_primary']};">{step.name}</strong>
+                                <span style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-left: 0.5rem;">({step.duration_ms}ms)</span>
+                            </div>
+                            <span style="color: {COLORS['text_secondary']}; font-size: 0.85rem;">{step.message}</span>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    # Summary metrics
+                    st.markdown("---")
+                    summary = result.summary
+
+                    col_a, col_b, col_c, col_d = st.columns(4)
+                    with col_a:
+                        st.metric("Quality Score", f"{result.quality_score}%")
+                    with col_b:
+                        st.metric("Columns Mapped", summary.get('columns_mapped', 0))
+                    with col_c:
+                        st.metric("Cleaning Actions", summary.get('cleaning_actions', 0))
+                    with col_d:
+                        st.metric("Columns Added", summary.get('columns_added', 0))
+
+                # Save prepared data
+                st.session_state.df = result.df
+                st.session_state.pipeline_result = result.to_dict()
+                st.session_state.data_is_clean = True
+
+                st.success("🎉 Data is ready for analysis! Navigate to the Dashboard or EDA tabs.")
+                st.balloons()
+
+            else:
+                status_text.markdown("**❌ Pipeline Failed**")
+                for step in result.steps:
+                    if step.status == "failed":
+                        st.error(f"Failed at {step.name}: {step.message}")
+
+    with col2:
+        if st.button("🔧 MANUAL CLEANING", type="secondary", use_container_width=True):
+            # Just copy original to df and let user clean manually
+            st.session_state.df = st.session_state.df_original.copy()
+            st.session_state.show_manual_cleaning = True
+            st.rerun()
+
+    # Show sample of original data
+    with st.expander("📋 Preview Original Data", expanded=False):
+        st.dataframe(df.head(20), use_container_width=True)
+
+    # Show detected column mappings
+    with st.expander("🔍 Preview Column Mappings", expanded=False):
+        from core.schema_mapper import SchemaMapper
+        mapper = SchemaMapper()
+        report = mapper.get_mapping_report(list(df.columns))
+
+        st.markdown(f"**Mapping Rate:** {report['mapping_rate']*100:.0f}% ({report['mapped_columns']}/{report['total_columns']} columns)")
+
+        if report['mappings']:
+            mapping_data = []
+            for m in report['mappings']:
+                mapping_data.append({
+                    "Original": m['source'],
+                    "Standard Name": m['target'],
+                    "Confidence": f"{m['confidence']*100:.0f}%",
+                    "Match Type": m['match_type']
+                })
+            st.dataframe(pd.DataFrame(mapping_data), use_container_width=True, hide_index=True)
+
+        if report['unmapped']:
+            st.markdown("**Unmapped Columns:**")
+            st.caption(", ".join(report['unmapped']))
+
+
 def render_upload_section():
     """Render the data upload interface - clean full width layout."""
     # Upload section header
@@ -127,14 +307,16 @@ def render_upload_section():
             if report["status"] == "error":
                 st.error(f"Error loading file: {report['warnings']}")
             else:
+                # Apply initial transformations (basic type conversions)
                 df = transform_data(df)
-                # Initialize session state for cleaning workflow
+                # Initialize session state for one-click prepare workflow
                 st.session_state.df_original = df.copy()
-                st.session_state.df = df.copy()
+                st.session_state.df = None  # Will be set by pipeline or manual cleaning
                 st.session_state.data_report = report
                 st.session_state.upload_time = datetime.now()
                 st.session_state.data_is_clean = False
-                st.success("Data loaded successfully! Proceed to the 'Data Quality & Cleaning' tab.")
+                st.session_state.show_manual_cleaning = False
+                st.success(f"✅ Loaded {len(df):,} rows × {len(df.columns)} columns")
                 st.rerun()
 
 
@@ -313,12 +495,23 @@ def render_cleaning_tab():
     """Render the UI for the data cleaning workbench."""
     st.header("Data Quality & Cleaning Workbench")
 
-    if 'df' not in st.session_state:
-        st.warning("No data loaded.")
-        return
+    if 'df' not in st.session_state or st.session_state.df is None:
+        if 'df_original' in st.session_state and st.session_state.df_original is not None:
+            # User is in manual mode but df wasn't set
+            st.session_state.df = st.session_state.df_original.copy()
+        else:
+            st.warning("No data loaded.")
+            return
 
     df = st.session_state.df
     df_original = st.session_state.df_original
+
+    # Show option to go back to one-click prepare
+    if st.session_state.get("show_manual_cleaning", False) and not st.session_state.get("data_is_clean", False):
+        if st.button("← Back to One-Click Prepare", type="secondary"):
+            st.session_state.show_manual_cleaning = False
+            st.session_state.df = None
+            st.rerun()
 
     st.markdown("Inspect data quality and apply cleaning actions before proceeding to analysis.")
 
@@ -540,8 +733,10 @@ def render_cleaning_tab():
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🗑️ Clear Data & Upload New File", type="secondary", use_container_width=True):
+            keys_to_clear = ['df', 'df_original', 'data_report', 'upload_time',
+                            'data_is_clean', 'show_manual_cleaning', 'pipeline_result']
             for key in list(st.session_state.keys()):
-                if key.startswith('df') or key in ['data_report', 'upload_time', 'data_is_clean']:
+                if key.startswith('df') or key.startswith('data_profile_') or key in keys_to_clear:
                     del st.session_state[key]
             st.rerun()
 
