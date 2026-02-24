@@ -1,6 +1,6 @@
 """
-Page: Home
-Purpose: Data upload, cleaning, and initial dashboard
+Page: Home - Executive Dashboard
+Purpose: Data upload, one-click preparation, and executive-level analytics
 Operations Analytics Platform for Food Delivery Businesses
 by JLWanalytics - Africa's Premier Data Refinery
 """
@@ -19,16 +19,12 @@ from data.transformer import transform_data
 from ui.theme import COLORS, CUSTOM_CSS
 from ui.layout import page_header, spacer, footer
 from ui.metrics_cards import render_kpi_card
-from ui.charts import (
-    bar_chart, box_plot, donut_chart, heatmap, scatter_plot,
-    histogram_chart, correlation_heatmap, missing_values_chart, gauge_chart
-)
+from ui.charts import bar_chart, donut_chart
 
 # Import configuration and analytics modules
 from core.config import get_config
 from core.local_analytics import get_local_analytics
-from core.data_profiler import get_data_profiler
-from core.pipeline import DataPipeline, prepare_data
+from core.pipeline import prepare_data
 
 
 # ── Page Config ──
@@ -48,20 +44,14 @@ def main():
 
     # ── Sidebar Branding & Data Status ──
     with st.sidebar:
-        # Get config for branding
         config = get_config()
         st.markdown(f'<div style="text-align:center;padding:1rem 0;"><h1 style="color:{COLORS["primary"]};font-size:1.5rem;margin:0;">🍕 {config.business_name}</h1><p style="color:{COLORS["text_secondary"]};font-size:0.875rem;margin:0;">{config.tagline}</p></div>', unsafe_allow_html=True)
-
         st.markdown("---")
 
         # ── Data Status ──
         if "df_original" in st.session_state and st.session_state.df_original is not None:
             if st.session_state.get("data_is_clean", False):
                 st.success(f"✓ Data ready: {len(st.session_state.df):,} orders")
-                st.info("✨ Data prepared for analysis")
-            elif st.session_state.get("show_manual_cleaning", False):
-                st.warning(f"📊 {len(st.session_state.df_original):,} orders loaded")
-                st.info("🔧 Manual cleaning mode")
             else:
                 st.warning(f"📊 {len(st.session_state.df_original):,} orders loaded")
                 st.info("🚀 Ready for preparation")
@@ -69,77 +59,83 @@ def main():
             st.info("📊 Upload data to begin")
 
     # ── Main Content ──
-    page_header(
-        title="Upload & Prepare Data",
-        icon="📁",
-        description="Upload your order data to get started with analytics"
-    )
-
-    # ── Conditional Rendering: Upload → One-Click Prepare → Tabs ──
     if "df_original" not in st.session_state or st.session_state.df_original is None:
         # No data uploaded yet
+        page_header(
+            title="Upload Your Data",
+            icon="📁",
+            description="Upload order data to get started with analytics"
+        )
         render_upload_section()
-    elif not st.session_state.get("data_is_clean", False) and not st.session_state.get("show_manual_cleaning", False):
-        # Data uploaded but not prepared - show one-click option
+    elif not st.session_state.get("data_is_clean", False):
+        # Data uploaded but not prepared
+        page_header(
+            title="Prepare Your Data",
+            icon="⚡",
+            description="One click to transform raw data into insights"
+        )
         render_one_click_prepare()
     else:
-        # Data is ready (either auto-prepared or manual cleaning in progress)
-        # New tabbed interface after data is loaded
-        cleaning_tab, eda_tab, dashboard_tab = st.tabs([
-            "1. Data Quality & Cleaning",
-            "2. Exploratory Analysis",
-            "3. Dashboard Overview"
-        ])
-
-        with cleaning_tab:
-            render_cleaning_tab()
-
-        with eda_tab:
-            if st.session_state.get("data_is_clean", False):
-                render_eda_section()
-            else:
-                st.info("Complete data cleaning first to access exploratory analysis.")
-                st.markdown(f'<div style="background-color:{COLORS["bg_card"]};border-radius:12px;padding:2rem;text-align:center;"><p style="color:{COLORS["text_secondary"]};">The EDA section will appear here once the data is cleaned and confirmed.</p></div>', unsafe_allow_html=True)
-
-        with dashboard_tab:
-            if st.session_state.get("data_is_clean", False):
-                render_dashboard_tab()
-            else:
-                st.info("Please complete the data cleaning steps and click 'Confirm & Proceed' to view the dashboard.")
-                st.markdown(f'<div style="background-color:{COLORS["bg_card"]};border-radius:12px;padding:2rem;text-align:center;"><p style="color:{COLORS["text_secondary"]};">The dashboard will appear here once the data is cleaned and confirmed.</p></div>', unsafe_allow_html=True)
+        # Data is ready - show executive dashboard
+        render_executive_dashboard()
 
     spacer("2rem")
     footer()
 
 
+def render_upload_section():
+    """Render the data upload interface - clean full width layout."""
+    st.markdown(f'''
+    <div style="text-align: center; padding: 2rem; margin-bottom: 1rem;">
+        <p style="color: {COLORS["text_secondary"]}; font-size: 1rem; margin: 0;">
+            Upload a CSV or Excel file with your order data to get started
+        </p>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    uploaded_file = st.file_uploader(
+        "Choose a file",
+        type=["csv", "xlsx", "xls"],
+        help="Upload your order data in CSV or Excel format",
+        label_visibility="collapsed"
+    )
+
+    if uploaded_file is not None:
+        with st.spinner("Processing data..."):
+            df, report = load_and_validate(uploaded_file)
+            if report["status"] == "error":
+                st.error(f"Error loading file: {report['warnings']}")
+            else:
+                df = transform_data(df)
+                st.session_state.df_original = df.copy()
+                st.session_state.df = None
+                st.session_state.data_report = report
+                st.session_state.upload_time = datetime.now()
+                st.session_state.data_is_clean = False
+                st.success(f"✅ Loaded {len(df):,} rows × {len(df.columns)} columns")
+                st.rerun()
+
+
 def render_one_click_prepare():
-    """
-    Render the one-click data preparation interface.
-    Shows pipeline progress and results with polished UI.
-    """
+    """Render the one-click data preparation interface."""
     df = st.session_state.df_original
     config = get_config()
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # HERO SECTION
-    # ══════════════════════════════════════════════════════════════════════════
+    # Hero section
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, {COLORS['bg_dark']} 0%, #1e293b 100%); border-radius: 20px; padding: 2.5rem; margin-bottom: 2rem; border: 1px solid {COLORS['primary']}40; position: relative; overflow: hidden;">
         <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, {COLORS['primary']}20 0%, transparent 70%); border-radius: 50%;"></div>
-        <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, {COLORS['secondary']}15 0%, transparent 70%); border-radius: 50%;"></div>
         <div style="position: relative; z-index: 1; text-align: center;">
             <div style="display: inline-block; background: linear-gradient(135deg, {COLORS['primary']} 0%, {COLORS['secondary']} 100%); padding: 0.5rem 1.5rem; border-radius: 20px; margin-bottom: 1rem;">
                 <span style="color: white; font-weight: 600; font-size: 0.875rem;">⚡ INTELLIGENT PIPELINE</span>
             </div>
             <h1 style="color: {COLORS['text_primary']}; margin: 0 0 0.75rem 0; font-size: 2rem; font-weight: 700;">One-Click Data Preparation</h1>
-            <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Transform raw data into analysis-ready insights in seconds</p>
+            <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 1.1rem;">Transform raw data into analysis-ready insights in seconds</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # DATA SUMMARY CARDS
-    # ══════════════════════════════════════════════════════════════════════════
+    # Data summary cards
     missing_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100)
     missing_color = COLORS['success'] if missing_pct < 1 else COLORS['warning'] if missing_pct < 5 else COLORS['danger']
 
@@ -163,33 +159,28 @@ def render_one_click_prepare():
     </div>
     """, unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # PIPELINE STEPS PREVIEW
-    # ══════════════════════════════════════════════════════════════════════════
+    # Pipeline steps preview
     st.markdown(f"""
     <div style="background: {COLORS['bg_card']}; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid {COLORS['border']};">
-        <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0; font-size: 1rem; display: flex; align-items: center;">
-            <span style="background: {COLORS['primary']}20; padding: 0.25rem 0.5rem; border-radius: 6px; margin-right: 0.5rem;">⚙️</span>
-            Pipeline Steps
-        </h4>
+        <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0; font-size: 1rem;">What happens when you click Prepare:</h4>
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
-            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['primary']}10; border-radius: 8px; border: 1px solid {COLORS['primary']}30;">
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['primary']}10; border-radius: 8px;">
                 <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🔍</div>
-                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Detect</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Detect Schema</div>
             </div>
-            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['info']}10; border-radius: 8px; border: 1px solid {COLORS['info']}30;">
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['info']}10; border-radius: 8px;">
                 <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🏷️</div>
-                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Map</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Map Columns</div>
             </div>
-            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['warning']}10; border-radius: 8px; border: 1px solid {COLORS['warning']}30;">
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['warning']}10; border-radius: 8px;">
                 <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🧹</div>
-                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Clean</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Clean Data</div>
             </div>
-            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['secondary']}10; border-radius: 8px; border: 1px solid {COLORS['secondary']}30;">
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['secondary']}10; border-radius: 8px;">
                 <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">✨</div>
-                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Enrich</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Add Metrics</div>
             </div>
-            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['success']}10; border-radius: 8px; border: 1px solid {COLORS['success']}30;">
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['success']}10; border-radius: 8px;">
                 <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">✅</div>
                 <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Validate</div>
             </div>
@@ -197,1157 +188,447 @@ def render_one_click_prepare():
     </div>
     """, unsafe_allow_html=True)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # ACTION BUTTONS
-    # ══════════════════════════════════════════════════════════════════════════
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
-        prepare_clicked = st.button(
-            "🚀 PREPARE DATA AUTOMATICALLY",
-            type="primary",
-            use_container_width=True,
-            help="Run the intelligent pipeline to clean and transform your data"
-        )
-
-    with col2:
-        manual_clicked = st.button(
-            "🔧 Manual Mode",
-            type="secondary",
-            use_container_width=True,
-            help="Manually clean and transform your data step by step"
-        )
-
-    if manual_clicked:
-        st.session_state.df = st.session_state.df_original.copy()
-        st.session_state.show_manual_cleaning = True
-        st.rerun()
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PIPELINE EXECUTION
-    # ══════════════════════════════════════════════════════════════════════════
-    if prepare_clicked:
-        st.markdown("---")
-
-        # Progress container
-        progress_container = st.container()
-
-        with progress_container:
-            st.markdown(f"""
-            <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1.5rem; border: 1px solid {COLORS['border']};">
-                <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0;">🔄 Processing...</h4>
-            </div>
-            """, unsafe_allow_html=True)
-
-            progress_bar = st.progress(0)
-            status_text = st.empty()
-
-            def update_progress(step_num, total_steps, step_name):
-                progress_bar.progress(step_num / total_steps)
-                status_text.markdown(f"**Step {step_num}/{total_steps}:** {step_name}")
-
-            # Get config as dict for pipeline
-            pipeline_config = {
-                "delivery_target_minutes": config.delivery_target_minutes,
-            }
-
-            # Run the pipeline
-            result = prepare_data(df, pipeline_config, update_progress)
-
-            if result.success:
-                progress_bar.progress(1.0)
-                status_text.empty()
-
-                # Save prepared data
-                st.session_state.df = result.df
-                st.session_state.pipeline_result = result.to_dict()
-                st.session_state.data_is_clean = True
-
-                # Show success screen
-                summary = result.summary
-
-                st.markdown(f"""
-                <div style="background: linear-gradient(135deg, {COLORS['success']}15 0%, {COLORS['success']}05 100%); border-radius: 16px; padding: 2rem; margin: 1rem 0; border: 1px solid {COLORS['success']}40; text-align: center;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
-                    <h2 style="color: {COLORS['success']}; margin: 0 0 0.5rem 0;">Data Preparation Complete!</h2>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0 0 1.5rem 0;">Your data is now ready for analysis</p>
-                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 600px; margin: 0 auto;">
-                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
-                            <div style="color: {COLORS['success']}; font-size: 1.5rem; font-weight: 700;">{result.quality_score:.0f}%</div>
-                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Quality</div>
-                        </div>
-                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
-                            <div style="color: {COLORS['primary']}; font-size: 1.5rem; font-weight: 700;">{summary.get('columns_mapped', 0)}</div>
-                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Mapped</div>
-                        </div>
-                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
-                            <div style="color: {COLORS['warning']}; font-size: 1.5rem; font-weight: 700;">{summary.get('cleaning_actions', 0)}</div>
-                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Cleaned</div>
-                        </div>
-                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
-                            <div style="color: {COLORS['secondary']}; font-size: 1.5rem; font-weight: 700;">{summary.get('columns_added', 0)}</div>
-                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Enriched</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-                # Pipeline step details (collapsed)
-                with st.expander("📋 View Pipeline Details", expanded=False):
-                    for step in result.steps:
-                        if step.status == "completed":
-                            icon = "✅"
-                            color = COLORS['success']
-                        elif step.status == "failed":
-                            icon = "❌"
-                            color = COLORS['danger']
-                        else:
-                            icon = "⏳"
-                            color = COLORS['warning']
-
-                        st.markdown(f"""
-                        <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: {color}10; border-radius: 8px; border-left: 4px solid {color};">
-                            <span style="font-size: 1.25rem; margin-right: 0.75rem;">{icon}</span>
-                            <div style="flex: 1;">
-                                <strong style="color: {COLORS['text_primary']};">{step.name}</strong>
-                                <span style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-left: 0.5rem;">({step.duration_ms}ms)</span>
-                            </div>
-                            <span style="color: {COLORS['text_secondary']}; font-size: 0.875rem;">{step.message}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-
-                st.balloons()
-
-                # Navigation button
-                spacer("1rem")
-                if st.button("📊 Go to Dashboard →", type="primary", use_container_width=True):
-                    st.rerun()
-
-            else:
-                st.markdown(f"""
-                <div style="background: {COLORS['danger']}15; border-radius: 12px; padding: 1.5rem; border: 1px solid {COLORS['danger']}40;">
-                    <h4 style="color: {COLORS['danger']}; margin: 0 0 0.5rem 0;">❌ Pipeline Failed</h4>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0;">Please try manual cleaning mode or check your data format.</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-                for step in result.steps:
-                    if step.status == "failed":
-                        st.error(f"Failed at {step.name}: {step.message}")
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PREVIEW SECTIONS
-    # ══════════════════════════════════════════════════════════════════════════
-    spacer("1rem")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        with st.expander("📋 Preview Data", expanded=False):
-            st.dataframe(df.head(15), use_container_width=True, height=300)
-
-    with col2:
-        with st.expander("🔍 Column Mappings", expanded=False):
-            from core.schema_mapper import SchemaMapper
-            mapper = SchemaMapper()
-            report = mapper.get_mapping_report(list(df.columns))
-
-            # Mapping rate badge
-            rate = report['mapping_rate'] * 100
-            rate_color = COLORS['success'] if rate >= 80 else COLORS['warning'] if rate >= 50 else COLORS['danger']
-            st.markdown(f"""
-            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-                <span style="background: {rate_color}20; color: {rate_color}; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 600; font-size: 0.875rem;">{rate:.0f}% Match Rate</span>
-                <span style="color: {COLORS['text_muted']}; margin-left: 0.5rem; font-size: 0.85rem;">{report['mapped_columns']}/{report['total_columns']} columns</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-            if report['mappings']:
-                mapping_data = []
-                for m in report['mappings']:
-                    mapping_data.append({
-                        "Original": m['source'],
-                        "→": "→",
-                        "Standard": m['target'],
-                        "Conf.": f"{m['confidence']*100:.0f}%"
-                    })
-                st.dataframe(pd.DataFrame(mapping_data), use_container_width=True, hide_index=True, height=250)
-
-
-def render_upload_section():
-    """Render the data upload interface - clean full width layout."""
-    # Upload section header
-    st.markdown(f'''
-    <div style="text-align: center; padding: 2rem; margin-bottom: 1rem;">
-        <p style="color: {COLORS["text_secondary"]}; font-size: 1rem; margin: 0;">
-            Upload a CSV or Excel file with your order data to get started
-        </p>
-    </div>
-    ''', unsafe_allow_html=True)
-
-    # File uploader (full width)
-    uploaded_file = st.file_uploader(
-        "Choose a file",
-        type=["csv", "xlsx", "xls"],
-        help="Upload your order data in CSV or Excel format",
-        label_visibility="collapsed"
+    # Action button
+    prepare_clicked = st.button(
+        "🚀 PREPARE DATA AUTOMATICALLY",
+        type="primary",
+        use_container_width=True,
+        help="Run the intelligent pipeline to clean and transform your data"
     )
 
-    if uploaded_file is not None:
-        with st.spinner("Processing data..."):
-            df, report = load_and_validate(uploaded_file)
-            if report["status"] == "error":
-                st.error(f"Error loading file: {report['warnings']}")
-            else:
-                # Apply initial transformations (basic type conversions)
-                df = transform_data(df)
-                # Initialize session state for one-click prepare workflow
-                st.session_state.df_original = df.copy()
-                st.session_state.df = None  # Will be set by pipeline or manual cleaning
-                st.session_state.data_report = report
-                st.session_state.upload_time = datetime.now()
-                st.session_state.data_is_clean = False
-                st.session_state.show_manual_cleaning = False
-                st.success(f"✅ Loaded {len(df):,} rows × {len(df.columns)} columns")
-                st.rerun()
+    if prepare_clicked:
+        st.markdown("---")
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
+        def update_progress(step_num, total_steps, step_name):
+            progress_bar.progress(step_num / total_steps)
+            status_text.markdown(f"**Step {step_num}/{total_steps}:** {step_name}")
 
-def render_smart_profiler(df: pd.DataFrame):
-    """
-    Render the intelligent data profiler that automatically scans the dataset,
-    identifies column types, detects issues, and suggests cleaning actions.
-    Works with ANY dataset - fully adaptive.
-    """
-    profiler = get_data_profiler()
+        pipeline_config = {"delivery_target_minutes": config.delivery_target_minutes}
+        result = prepare_data(df, pipeline_config, update_progress)
 
-    # Profile the dataset (cache in session state)
-    profile_key = f"data_profile_{len(df)}_{len(df.columns)}"
-    if profile_key not in st.session_state:
-        with st.spinner("Scanning dataset..."):
-            st.session_state[profile_key] = profiler.profile_dataset(df)
+        if result.success:
+            progress_bar.progress(1.0)
+            status_text.empty()
 
-    profile = st.session_state[profile_key]
-    summary = profile["summary"]
+            st.session_state.df = result.df
+            st.session_state.pipeline_result = result.to_dict()
+            st.session_state.data_is_clean = True
 
-    # ── Summary Cards ──
-    st.markdown(f"""
-    <div style="
-        background: linear-gradient(135deg, {COLORS['primary']}15 0%, {COLORS['primary']}05 100%);
-        border: 1px solid {COLORS['primary']}30;
-        border-radius: 12px;
-        padding: 1.25rem;
-        margin-bottom: 1.5rem;
-    ">
-        <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0;">
-            🔬 Intelligent Data Profiler
-        </h4>
-        <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-            Automatically scanned {profile['total_columns']} columns and detected {summary['total_issues']} issues in {summary['columns_with_issues']} columns.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Type Distribution ──
-    type_icons = {
-        'numeric': '🔢',
-        'categorical': '🏷️',
-        'datetime': '📅',
-        'boolean': '✓',
-        'id': '🔑',
-        'text': '📝',
-        'unknown': '❓'
-    }
-
-    type_dist = summary.get('type_distribution', {})
-    if type_dist:
-        type_cols = st.columns(len(type_dist))
-        for i, (col_type, count) in enumerate(type_dist.items()):
-            with type_cols[i]:
-                icon = type_icons.get(col_type, '📊')
-                st.markdown(f"""
-                <div style="
-                    background: {COLORS['bg_card']};
-                    border-radius: 8px;
-                    padding: 0.75rem;
-                    text-align: center;
-                    border: 1px solid {COLORS['border']};
-                ">
-                    <div style="font-size: 1.5rem;">{icon}</div>
-                    <div style="color: {COLORS['text_primary']}; font-weight: 600;">{count}</div>
-                    <div style="color: {COLORS['text_muted']}; font-size: 0.75rem; text-transform: uppercase;">{col_type}</div>
-                </div>
-                """, unsafe_allow_html=True)
-
-    st.markdown("")
-
-    # ── Columns with Issues ──
-    columns_with_issues = [(name, p) for name, p in profile["columns"].items() if p.issues]
-
-    if columns_with_issues:
-        st.markdown("#### Columns Requiring Attention")
-
-        for col_name, col_profile in columns_with_issues:
-            # Determine severity color
-            max_severity = max([i['severity'] for i in col_profile.issues], key=lambda x: {'critical': 3, 'warning': 2, 'info': 1}.get(x, 0))
-            severity_colors = {
-                'critical': COLORS['danger'],
-                'warning': COLORS['warning'],
-                'info': COLORS['primary']
-            }
-            border_color = severity_colors.get(max_severity, COLORS['primary'])
-            type_icon = type_icons.get(col_profile.inferred_type, '📊')
-
-            with st.expander(f"{type_icon} {col_name} — {len(col_profile.issues)} issue(s)", expanded=False):
-                # Column info
-                st.markdown(f"""
-                <div style="
-                    display: flex;
-                    gap: 1rem;
-                    flex-wrap: wrap;
-                    margin-bottom: 1rem;
-                ">
-                    <span style="background: {COLORS['bg_card']}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
-                        Type: <strong>{col_profile.inferred_type}</strong>
-                    </span>
-                    <span style="background: {COLORS['bg_card']}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
-                        Unique: <strong>{col_profile.unique_count:,}</strong>
-                    </span>
-                    <span style="background: {COLORS['bg_card']}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem;">
-                        Missing: <strong>{col_profile.missing_pct}%</strong>
-                    </span>
-                </div>
-                """, unsafe_allow_html=True)
-
-                # Show sample values
-                if col_profile.sample_values:
-                    sample_str = ", ".join([str(v)[:30] for v in col_profile.sample_values[:3]])
-                    st.caption(f"Sample values: {sample_str}")
-
-                # Show issues
-                for issue in col_profile.issues:
-                    issue_color = severity_colors.get(issue['severity'], COLORS['primary'])
-                    st.markdown(f"""
-                    <div style="
-                        background: {issue_color}10;
-                        border-left: 3px solid {issue_color};
-                        padding: 0.5rem 0.75rem;
-                        border-radius: 0 6px 6px 0;
-                        margin-bottom: 0.5rem;
-                    ">
-                        <span style="color: {COLORS['text_primary']};">{issue['description']}</span>
-                        <span style="color: {issue_color}; font-size: 0.75rem; margin-left: 0.5rem;">{issue['severity'].upper()}</span>
+            summary = result.summary
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, {COLORS['success']}15 0%, {COLORS['success']}05 100%); border-radius: 16px; padding: 2rem; margin: 1rem 0; border: 1px solid {COLORS['success']}40; text-align: center;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+                <h2 style="color: {COLORS['success']}; margin: 0 0 0.5rem 0;">Data Preparation Complete!</h2>
+                <p style="color: {COLORS['text_secondary']}; margin: 0 0 1.5rem 0;">Your data is now ready for analysis</p>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 600px; margin: 0 auto;">
+                    <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                        <div style="color: {COLORS['success']}; font-size: 1.5rem; font-weight: 700;">{result.quality_score:.0f}%</div>
+                        <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Quality</div>
                     </div>
-                    """, unsafe_allow_html=True)
+                    <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                        <div style="color: {COLORS['primary']}; font-size: 1.5rem; font-weight: 700;">{summary.get('columns_mapped', 0)}</div>
+                        <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Mapped</div>
+                    </div>
+                    <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                        <div style="color: {COLORS['warning']}; font-size: 1.5rem; font-weight: 700;">{summary.get('cleaning_actions', 0)}</div>
+                        <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Cleaned</div>
+                    </div>
+                    <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                        <div style="color: {COLORS['secondary']}; font-size: 1.5rem; font-weight: 700;">{summary.get('columns_added', 0)}</div>
+                        <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Enriched</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-                # Suggested actions with buttons
-                if col_profile.suggested_actions:
-                    st.markdown("**Quick Fixes:**")
-                    for j, action in enumerate(col_profile.suggested_actions):
-                        recommended = action.get('recommended', False)
-                        btn_label = f"{'⭐ ' if recommended else ''}{action['description']}"
-                        btn_type = "primary" if recommended else "secondary"
-                        btn_key = f"fix_{col_name}_{action['action']}_{action['method']}_{j}"
+            st.balloons()
 
-                        if st.button(btn_label, key=btn_key, type=btn_type):
-                            # Apply the fix
-                            try:
-                                df_fixed = profiler.apply_action(st.session_state.df, col_name, action)
-                                st.session_state.df = df_fixed
-                                # Clear profile cache to re-scan
-                                for key in list(st.session_state.keys()):
-                                    if key.startswith("data_profile_"):
-                                        del st.session_state[key]
-                                st.success(f"Applied: {action['description']}")
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"Error applying fix: {str(e)}")
-    else:
-        st.success("All columns look good! No issues detected.")
+            spacer("1rem")
+            if st.button("📊 View Executive Dashboard →", type="primary", use_container_width=True):
+                st.rerun()
 
-    # ── All Columns Overview (collapsed) ──
-    with st.expander("📋 All Columns Overview", expanded=False):
-        # Create a summary table
-        overview_data = []
-        for col_name, col_profile in profile["columns"].items():
-            overview_data.append({
-                "Column": col_name,
-                "Type": col_profile.inferred_type,
-                "Unique": col_profile.unique_count,
-                "Missing %": col_profile.missing_pct,
-                "Issues": len(col_profile.issues)
-            })
-
-        overview_df = pd.DataFrame(overview_data)
-        st.dataframe(overview_df, use_container_width=True, hide_index=True)
-
-    st.markdown("---")
-
-
-def render_cleaning_tab():
-    """Render the UI for the data cleaning workbench."""
-    st.header("Data Quality & Cleaning Workbench")
-
-    if 'df' not in st.session_state or st.session_state.df is None:
-        if 'df_original' in st.session_state and st.session_state.df_original is not None:
-            # User is in manual mode but df wasn't set
-            st.session_state.df = st.session_state.df_original.copy()
         else:
-            st.warning("No data loaded.")
-            return
+            st.error("Pipeline failed. Please check your data format.")
+            for step in result.steps:
+                if step.status == "failed":
+                    st.error(f"Failed at {step.name}: {step.message}")
 
+    # Preview data
+    spacer("1rem")
+    with st.expander("📋 Preview Raw Data", expanded=False):
+        st.dataframe(df.head(15), use_container_width=True, height=300)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# EXECUTIVE DASHBOARD - Single View for Managers
+# ════════════════════════════════════════════════════════════════════════════════
+
+def render_executive_dashboard():
+    """Render the executive dashboard - single clean view for managers."""
     df = st.session_state.df
-    df_original = st.session_state.df_original
+    config = get_config()
+    analytics = get_local_analytics()
 
-    # Show option to go back to one-click prepare
-    if st.session_state.get("show_manual_cleaning", False) and not st.session_state.get("data_is_clean", False):
-        if st.button("← Back to One-Click Prepare", type="secondary"):
-            st.session_state.show_manual_cleaning = False
-            st.session_state.df = None
-            st.rerun()
+    # Section 1: Executive Header
+    render_exec_header(df, config, analytics)
 
-    st.markdown("Inspect data quality and apply cleaning actions before proceeding to analysis.")
+    spacer("1.5rem")
 
-    # Show summary
-    st.subheader("Dataset Overview")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Original Rows", len(df_original))
-    col2.metric("Current Rows", len(df), delta=len(df) - len(df_original))
-    col3.metric("Columns", len(df.columns))
-    st.markdown("---")
+    # Section 2: Key Business KPIs
+    render_kpi_row(df)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # INTELLIGENT DATA PROFILER SECTION
-    # ══════════════════════════════════════════════════════════════════════════
-    render_smart_profiler(df)
+    spacer("1.5rem")
 
-    st.markdown("---")
+    # Section 3: Operations Health Status
+    render_health_status(df, analytics)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # MANUAL CLEANING OPTIONS
-    # ══════════════════════════════════════════════════════════════════════════
-    with st.expander("Manual Cleaning Options", expanded=False):
-        # 1. Handle Duplicates
-        st.subheader("Duplicate Rows")
-        num_duplicates = df.duplicated().sum()
-        if num_duplicates > 0:
-            st.warning(f"Found {num_duplicates} duplicate rows.")
-            if st.button("Remove Duplicates"):
-                st.session_state.df = df.drop_duplicates()
-                st.rerun()
-        else:
-            st.success("No duplicate rows found.")
-        st.markdown("---")
+    spacer("1.5rem")
 
-        # 2. Handle Missing Values
-        st.subheader("Missing Values")
-        missing_data = df.isnull().sum()
-        missing_cols = missing_data[missing_data > 0]
-        if not missing_cols.empty:
-            st.warning(f"Found missing values in {len(missing_cols)} columns.")
-            selected_col = st.selectbox("Select column to clean:", options=missing_cols.index)
-            st.write(f"Column **{selected_col}** has **{missing_cols[selected_col]}** missing values.")
+    # Section 4: Issues & Actions (2-column)
+    render_issues_actions(df, analytics)
 
-            # Detect column type and show appropriate options
-            is_numeric = pd.api.types.is_numeric_dtype(df[selected_col])
+    spacer("1.5rem")
 
-            if is_numeric:
-                st.caption("📊 Numeric column detected")
-                imputation_options = [
-                    "Drop rows with missing values",
-                    "Fill with mean",
-                    "Fill with median",
-                    "Fill with mode"
-                ]
-            else:
-                st.caption("📝 Text/Categorical column detected")
-                imputation_options = [
-                    "Drop rows with missing values",
-                    "Fill with mode (most common value)",
-                    "Fill with 'Unknown'"
-                ]
+    # Section 5: Quick Performance Chart
+    render_quick_chart(df, analytics)
 
-            imputation_method = st.radio(
-                "Choose cleaning method:",
-                imputation_options,
-                key=f"impute_{selected_col}"
-            )
+    spacer("1.5rem")
 
-            if st.button(f"Apply to '{selected_col}'"):
-                df_cleaned = st.session_state.df.copy()
+    # Section 6: Advanced Analysis (collapsed)
+    render_advanced_section(df)
 
-                if "Drop" in imputation_method:
-                    df_cleaned.dropna(subset=[selected_col], inplace=True)
-                    st.toast(f"Dropped rows with missing values in '{selected_col}'.")
-                elif "mean" in imputation_method.lower():
-                    fill_value = df_cleaned[selected_col].mean()
-                    df_cleaned[selected_col].fillna(fill_value, inplace=True)
-                    st.toast(f"Filled with mean: {fill_value:.2f}")
-                elif "median" in imputation_method.lower():
-                    fill_value = df_cleaned[selected_col].median()
-                    df_cleaned[selected_col].fillna(fill_value, inplace=True)
-                    st.toast(f"Filled with median: {fill_value:.2f}")
-                elif "mode" in imputation_method.lower():
-                    fill_value = df_cleaned[selected_col].mode()[0]
-                    df_cleaned[selected_col].fillna(fill_value, inplace=True)
-                    st.toast(f"Filled with mode: '{fill_value}'")
-                elif "Unknown" in imputation_method:
-                    df_cleaned[selected_col].fillna("Unknown", inplace=True)
-                    st.toast(f"Filled with 'Unknown'")
+    spacer("1rem")
 
-                st.session_state.df = df_cleaned
-                st.rerun()
-        else:
-            st.success("No missing values found.")
-
-        st.markdown("---")
-
-        # 3. Standardize Text Values (Fix inconsistent casing)
-        st.subheader("Standardize Text Values")
-        st.caption("🔤 Fix inconsistent text casing (e.g., 'Late delivery' vs 'late delivery' vs 'Late Delivery')")
-
-        # Find text/object columns
-        text_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        if text_cols:
-            std_col = st.selectbox("Select column to standardize:", options=text_cols, key="standardize_col_select")
-
-            if std_col:
-                # Show current unique values
-                unique_vals = df[std_col].dropna().unique().tolist()
-                st.write(f"**{std_col}** has **{len(unique_vals)}** unique values:")
-
-                # Display values in a compact way
-                with st.expander("View current values", expanded=False):
-                    for v in unique_vals[:20]:
-                        st.caption(f"  • `{v}`")
-                    if len(unique_vals) > 20:
-                        st.caption(f"  ... and {len(unique_vals) - 20} more")
-
-                # Standardization options
-                case_option = st.radio(
-                    "Convert text to:",
-                    options=["lowercase", "UPPERCASE", "Title Case"],
-                    horizontal=True,
-                    key="case_option"
-                )
-
-                # Preview
-                if case_option == "lowercase":
-                    preview_vals = [str(v).lower() for v in unique_vals[:5]]
-                elif case_option == "UPPERCASE":
-                    preview_vals = [str(v).upper() for v in unique_vals[:5]]
-                else:  # Title Case
-                    preview_vals = [str(v).title() for v in unique_vals[:5]]
-
-                st.caption(f"Preview: {unique_vals[:5]} → {preview_vals}")
-
-                # Count how many duplicates will be merged
-                if case_option == "lowercase":
-                    new_unique = len(set(str(v).lower() for v in unique_vals))
-                elif case_option == "UPPERCASE":
-                    new_unique = len(set(str(v).upper() for v in unique_vals))
-                else:
-                    new_unique = len(set(str(v).title() for v in unique_vals))
-
-                if new_unique < len(unique_vals):
-                    st.info(f"This will merge {len(unique_vals)} values into {new_unique} unique values (fixing {len(unique_vals) - new_unique} inconsistencies)")
-
-                if st.button("Apply Standardization", key="apply_standardize"):
-                    df_copy = st.session_state.df.copy()
-                    if case_option == "lowercase":
-                        df_copy[std_col] = df_copy[std_col].astype(str).str.lower()
-                    elif case_option == "UPPERCASE":
-                        df_copy[std_col] = df_copy[std_col].astype(str).str.upper()
-                    else:
-                        df_copy[std_col] = df_copy[std_col].astype(str).str.title()
-
-                    st.session_state.df = df_copy
-                    st.success(f"Standardized '{std_col}' to {case_option}")
-                    st.rerun()
-        else:
-            st.success("No text columns found to standardize.")
-
-        st.markdown("---")
-
-        # 4. Create Indicator Variables (Binary 0/1)
-        st.subheader("Create Indicator Variables")
-        st.caption("🔢 Create binary columns (0 or 1) from text categories for analysis")
-
-        # Find text/object columns (refresh after potential standardization)
-        text_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-        if text_cols:
-            encode_col = st.selectbox("Select column with text values:", options=text_cols, key="encode_col_select")
-
-            if encode_col:
-                unique_values = df[encode_col].dropna().unique().tolist()
-                st.write(f"**{encode_col}** has **{len(unique_values)}** unique values")
-
-                # Let user select which values to create indicators for
-                st.write("Select values to create indicator columns for:")
-                selected_values = st.multiselect(
-                    "Each selected value becomes a new column (1 = present, 0 = not present)",
-                    options=unique_values,
-                    default=unique_values[:5] if len(unique_values) > 5 else unique_values,
-                    key="indicator_values"
-                )
-
-                if selected_values:
-                    # Preview what will be created
-                    st.caption("Will create these columns:")
-                    for val in selected_values:
-                        clean_name = str(val).lower().replace(" ", "_").replace("-", "_")
-                        st.caption(f"  • `is_{clean_name}` → 1 if '{val}', 0 otherwise")
-
-                    if st.button("Create Indicator Columns", key="create_indicators"):
-                        df_encoded = st.session_state.df.copy()
-                        created_cols = []
-
-                        for val in selected_values:
-                            # Create clean column name
-                            clean_name = str(val).lower().replace(" ", "_").replace("-", "_")
-                            new_col = f"is_{clean_name}"
-
-                            # Create binary indicator: 1 if value matches, 0 otherwise
-                            df_encoded[new_col] = (df_encoded[encode_col] == val).astype(int)
-                            created_cols.append(new_col)
-
-                        st.session_state.df = df_encoded
-                        st.success(f"Created {len(created_cols)} indicator columns: {', '.join(created_cols)}")
-                        st.rerun()
-                else:
-                    st.warning("Select at least one value to create indicator columns")
-        else:
-            st.success("No text columns found - all columns are already numeric!")
-
-    # Data Preview & Clear Button
-    with st.expander("Preview Cleaned Data"):
-        st.dataframe(st.session_state.df.head(50), use_container_width=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🗑️ Clear Data & Upload New File", type="secondary", use_container_width=True):
+    # Clear data button
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("🗑️ Clear Data & Start Over", type="secondary", use_container_width=True):
             keys_to_clear = ['df', 'df_original', 'data_report', 'upload_time',
-                            'data_is_clean', 'show_manual_cleaning', 'pipeline_result']
+                            'data_is_clean', 'pipeline_result']
             for key in list(st.session_state.keys()):
                 if key.startswith('df') or key.startswith('data_profile_') or key in keys_to_clear:
                     del st.session_state[key]
             st.rerun()
 
-    with col2:
-        # Proceed Button
-        if st.button("✅ Confirm & Proceed to Dashboard", type="primary", use_container_width=True):
-            st.session_state.data_is_clean = True
-            st.balloons()
-            st.rerun()
 
-
-def render_eda_section():
-    """
-    Render comprehensive Exploratory Data Analysis section.
-    Works offline - pure Python analytics.
-    """
-    st.header("Exploratory Data Analysis")
-    st.markdown("Understand your data before identifying bottlenecks")
-
-    df = st.session_state.df
-    analytics = get_local_analytics()
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 1: DATASET OVERVIEW (Always visible)
-    # ══════════════════════════════════════════════════════════════════════════════
-    st.markdown("### Dataset Overview")
-
+def render_exec_header(df: pd.DataFrame, config, analytics):
+    """Render executive summary header with key stats."""
     quality_report = analytics.get_data_quality_report(df)
+    quality_score = quality_report["completeness_score"]
 
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        render_kpi_card(
-            title="Total Records",
-            value=quality_report["total_rows"],
-            icon="📊",
-            status="neutral"
-        )
-    with col2:
-        date_range = quality_report["date_range"]
-        if date_range["start"] and date_range["end"]:
-            unique_days = df["order_date"].dt.date.nunique() if "order_date" in df.columns else 0
-            render_kpi_card(
-                title="Unique Days",
-                value=unique_days,
-                icon="📅",
-                status="neutral"
-            )
-        else:
-            render_kpi_card(title="Date Range", value="N/A", icon="📅", status="neutral")
-    with col3:
-        render_kpi_card(
-            title="Columns",
-            value=quality_report["total_columns"],
-            icon="📋",
-            status="neutral"
-        )
-    with col4:
-        score = quality_report["completeness_score"]
-        status = "good" if score >= 95 else "warning" if score >= 80 else "danger"
-        render_kpi_card(
-            title="Completeness",
-            value=f"{score:.1f}",
-            suffix="%",
-            icon="✓",
-            status=status
-        )
+    # Determine quality badge color
+    if quality_score >= 95:
+        badge_color = COLORS['success']
+        badge_text = "EXCELLENT"
+    elif quality_score >= 80:
+        badge_color = COLORS['warning']
+        badge_text = "GOOD"
+    else:
+        badge_color = COLORS['danger']
+        badge_text = "NEEDS REVIEW"
 
-    spacer("1rem")
+    # Get date range
+    date_range = quality_report.get("date_range", {})
+    start_date = date_range.get("start", "")
+    end_date = date_range.get("end", "")
+    date_str = f"{start_date} - {end_date}" if start_date and end_date else "N/A"
 
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 2: NUMERICAL DISTRIBUTIONS
-    # ══════════════════════════════════════════════════════════════════════════════
-    with st.expander("📈 Numerical Distributions", expanded=False):
-        st.markdown("Analyze the distribution of time-based metrics")
-
-        time_cols = ["dough_prep_time", "styling_time", "oven_time",
-                     "boxing_time", "delivery_duration", "total_process_time"]
-        available_time_cols = [c for c in time_cols if c in df.columns]
-
-        if available_time_cols:
-            selected_var = st.selectbox(
-                "Select Variable",
-                available_time_cols,
-                format_func=lambda x: x.replace("_", " ").title(),
-                key="eda_num_var"
-            )
-
-            col1, col2 = st.columns([2, 1])
-            with col1:
-                fig = histogram_chart(
-                    df, selected_var,
-                    title=f"Distribution of {selected_var.replace('_', ' ').title()}",
-                    height=350
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-            with col2:
-                # Summary statistics
-                stats = analytics.get_numerical_stats(df)
-                if selected_var in stats:
-                    var_stats = stats[selected_var]
-                    st.markdown(f"**{selected_var.replace('_', ' ').title()}**")
-                    st.markdown(f"""
-                    <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1rem; border: 1px solid {COLORS['border']};">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                            <div><span style="color: {COLORS['text_muted']};">Mean:</span> <strong>{var_stats['mean']:.2f}</strong></div>
-                            <div><span style="color: {COLORS['text_muted']};">Median:</span> <strong>{var_stats['median']:.2f}</strong></div>
-                            <div><span style="color: {COLORS['text_muted']};">Std Dev:</span> <strong>{var_stats['std']:.2f}</strong></div>
-                            <div><span style="color: {COLORS['text_muted']};">Min:</span> <strong>{var_stats['min']:.2f}</strong></div>
-                            <div><span style="color: {COLORS['text_muted']};">Max:</span> <strong>{var_stats['max']:.2f}</strong></div>
-                            <div><span style="color: {COLORS['text_muted']};">Q1:</span> <strong>{var_stats['q1']:.2f}</strong></div>
-                            <div><span style="color: {COLORS['text_muted']};">Q3:</span> <strong>{var_stats['q3']:.2f}</strong></div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-            # Box plot comparison of all stages
-            st.markdown("#### Stage Time Comparison")
-            if len(available_time_cols) > 1:
-                # Melt data for box plot
-                melt_df = df[available_time_cols].melt(var_name="Stage", value_name="Time (min)")
-                melt_df["Stage"] = melt_df["Stage"].str.replace("_", " ").str.title()
-                fig = box_plot(melt_df, "Stage", "Time (min)", "Time Distribution by Stage", height=350)
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No time columns available for distribution analysis.")
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 3: CATEGORICAL ANALYSIS
-    # ══════════════════════════════════════════════════════════════════════════════
-    with st.expander("📊 Categorical Analysis", expanded=False):
-        st.markdown("Understand the breakdown of categorical variables")
-
-        cat_data = analytics.get_categorical_counts(df)
-
-        if cat_data:
-            # Show donut charts for top 3 categories
-            available_cats = list(cat_data.keys())[:3]
-            if available_cats:
-                cols = st.columns(len(available_cats))
-                for i, cat in enumerate(available_cats):
-                    with cols[i]:
-                        cat_df = cat_data[cat]
-                        fig = donut_chart(
-                            cat_df, cat, "count",
-                            title=cat.replace("_", " ").title(),
-                            height=280
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-
-            # Category performance comparison
-            st.markdown("#### Performance by Category")
-            selected_cat = st.selectbox(
-                "Select Category",
-                list(cat_data.keys()),
-                format_func=lambda x: x.replace("_", " ").title(),
-                key="eda_cat_var"
-            )
-
-            if "total_process_time" in df.columns:
-                cat_perf = df.groupby(selected_cat).agg({
-                    "total_process_time": ["mean", "count"]
-                }).round(1)
-                cat_perf.columns = ["Avg Time (min)", "Orders"]
-                cat_perf = cat_perf.reset_index()
-
-                fig = bar_chart(
-                    cat_perf, selected_cat, "Avg Time (min)",
-                    title=f"Average Time by {selected_cat.replace('_', ' ').title()}",
-                    show_values=True,
-                    height=350
-                )
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No categorical columns available for analysis.")
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 4: TEMPORAL PATTERNS
-    # ══════════════════════════════════════════════════════════════════════════════
-    with st.expander("🕐 Temporal Patterns", expanded=False):
-        st.markdown("Discover time-based patterns in your operations")
-
-        temporal = analytics.get_temporal_patterns(df)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if "hourly" in temporal and temporal["hourly"]:
-                hourly_df = pd.DataFrame({
-                    "Hour": list(temporal["hourly"].keys()),
-                    "Orders": list(temporal["hourly"].values())
-                }).sort_values("Hour")
-                fig = bar_chart(
-                    hourly_df, "Hour", "Orders",
-                    title="Orders by Hour of Day",
-                    color=COLORS["primary"],
-                    height=300
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-        with col2:
-            if "daily" in temporal and temporal["daily"]:
-                daily_df = pd.DataFrame({
-                    "Day": list(temporal["daily"].keys()),
-                    "Orders": list(temporal["daily"].values())
-                })
-                fig = bar_chart(
-                    daily_df, "Day", "Orders",
-                    title="Orders by Day of Week",
-                    color=COLORS["secondary"],
-                    height=300
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-        # Heatmap: Hour x Day
-        if "hour_of_day" in df.columns and "day_of_week" in df.columns:
-            st.markdown("#### Order Volume Heatmap")
-            heatmap_data = df.groupby(["day_of_week", "hour_of_day"]).size().reset_index(name="orders")
-            fig = heatmap(
-                heatmap_data, "hour_of_day", "day_of_week", "orders",
-                title="Order Volume: Day vs Hour",
-                height=350
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        # Peak vs Off-Peak comparison
-        if "peak_comparison" in temporal:
-            st.markdown("#### Peak vs Off-Peak Performance")
-            peak = temporal["peak_comparison"].get("peak", {})
-            off_peak = temporal["peak_comparison"].get("off_peak", {})
-
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown(f"""
-                <div style="background: {COLORS['warning']}15; border: 1px solid {COLORS['warning']}30; border-radius: 12px; padding: 1rem; text-align: center;">
-                    <h4 style="color: {COLORS['warning']}; margin: 0;">Peak Hours</h4>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0.5rem 0;">Avg Time: <strong>{peak.get('avg_time', 0):.1f} min</strong></p>
-                    <p style="color: {COLORS['text_muted']}; margin: 0;">Orders: {peak.get('count', 0):,}</p>
-                </div>
-                """, unsafe_allow_html=True)
-            with col2:
-                st.markdown(f"""
-                <div style="background: {COLORS['success']}15; border: 1px solid {COLORS['success']}30; border-radius: 12px; padding: 1rem; text-align: center;">
-                    <h4 style="color: {COLORS['success']}; margin: 0;">Off-Peak Hours</h4>
-                    <p style="color: {COLORS['text_secondary']}; margin: 0.5rem 0;">Avg Time: <strong>{off_peak.get('avg_time', 0):.1f} min</strong></p>
-                    <p style="color: {COLORS['text_muted']}; margin: 0;">Orders: {off_peak.get('count', 0):,}</p>
-                </div>
-                """, unsafe_allow_html=True)
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 5: STAGE ANALYSIS
-    # ══════════════════════════════════════════════════════════════════════════════
-    with st.expander("⏱️ Stage Analysis", expanded=False):
-        st.markdown("Breakdown of time spent at each process stage")
-
-        stage_breakdown = analytics.get_stage_breakdown(df)
-
-        if stage_breakdown:
-            # Stage KPI cards
-            stage_cols = st.columns(len(stage_breakdown))
-            for i, (stage, avg_time) in enumerate(stage_breakdown.items()):
-                with stage_cols[i]:
-                    benchmark = analytics.BENCHMARKS.get(
-                        stage.lower().replace(" ", "_") + "_time",
-                        analytics.BENCHMARKS.get(stage.lower().replace(" ", "_") + "_duration", avg_time)
-                    )
-                    status = "good" if avg_time <= benchmark * 1.1 else "warning" if avg_time <= benchmark * 1.3 else "danger"
-                    render_kpi_card(
-                        title=stage,
-                        value=f"{avg_time:.1f}",
-                        suffix=" min",
-                        status=status,
-                        target=f"Benchmark: {benchmark} min"
-                    )
-
-            # Stage proportion visualization
-            st.markdown("#### Time Proportion by Stage")
-            stage_df = pd.DataFrame({
-                "Stage": list(stage_breakdown.keys()),
-                "Time": list(stage_breakdown.values())
-            })
-            total_time = sum(stage_breakdown.values())
-            stage_df["Percentage"] = (stage_df["Time"] / total_time * 100).round(1)
-
-            fig = donut_chart(
-                stage_df, "Stage", "Time",
-                title="Time Distribution by Stage",
-                height=350
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No stage breakdown available.")
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 6: CORRELATION INSIGHTS
-    # ══════════════════════════════════════════════════════════════════════════════
-    with st.expander("🔗 Correlation Insights", expanded=False):
-        st.markdown("Discover relationships between variables")
-
-        corr_matrix = analytics.get_correlation_matrix(df)
-
-        if not corr_matrix.empty:
-            # Correlation heatmap
-            fig = correlation_heatmap(corr_matrix, title="Variable Correlations", height=400)
-            st.plotly_chart(fig, use_container_width=True)
-
-            # Key findings
-            st.markdown("#### Key Findings")
-            strong_corr = []
-            for i in range(len(corr_matrix.columns)):
-                for j in range(i + 1, len(corr_matrix.columns)):
-                    val = corr_matrix.iloc[i, j]
-                    if abs(val) > 0.5:
-                        strong_corr.append({
-                            "var1": corr_matrix.columns[i].replace("_", " ").title(),
-                            "var2": corr_matrix.columns[j].replace("_", " ").title(),
-                            "corr": val
-                        })
-
-            if strong_corr:
-                for item in strong_corr[:5]:
-                    direction = "positive" if item["corr"] > 0 else "negative"
-                    color = COLORS["success"] if item["corr"] > 0 else COLORS["danger"]
-                    st.markdown(f"""
-                    <div style="background: {color}10; border-left: 3px solid {color}; padding: 0.5rem 1rem; margin-bottom: 0.5rem; border-radius: 0 8px 8px 0;">
-                        <strong>{item['var1']}</strong> ↔ <strong>{item['var2']}</strong>:
-                        <span style="color: {color};">{item['corr']:.2f} ({direction})</span>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.success("No strong correlations (>0.5) found between variables.")
-
-            # Interactive scatter plot
-            st.markdown("#### Explore Relationships")
-            num_cols = corr_matrix.columns.tolist()
-            col1, col2 = st.columns(2)
-            with col1:
-                x_var = st.selectbox("X Variable", num_cols, key="eda_scatter_x",
-                                     format_func=lambda x: x.replace("_", " ").title())
-            with col2:
-                y_var = st.selectbox("Y Variable", num_cols, index=1 if len(num_cols) > 1 else 0,
-                                     key="eda_scatter_y",
-                                     format_func=lambda x: x.replace("_", " ").title())
-
-            if x_var != y_var:
-                fig = scatter_plot(
-                    df, x_var, y_var,
-                    title=f"{x_var.replace('_', ' ').title()} vs {y_var.replace('_', ' ').title()}",
-                    trendline="ols",
-                    height=350
-                )
-                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Not enough numeric columns for correlation analysis.")
-
-    # ══════════════════════════════════════════════════════════════════════════════
-    # SECTION 7: DATA QUALITY SUMMARY
-    # ══════════════════════════════════════════════════════════════════════════════
-    with st.expander("✅ Data Quality Summary", expanded=False):
-        st.markdown("Overview of data completeness and potential issues")
-
-        col1, col2 = st.columns([1, 2])
-
-        with col1:
-            # Quality score gauge
-            fig = gauge_chart(
-                quality_report["completeness_score"],
-                title="Data Completeness",
-                thresholds={
-                    "danger": (0, 80),
-                    "warning": (80, 95),
-                    "good": (95, 100)
-                },
-                height=250
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        with col2:
-            # Missing values chart
-            fig = missing_values_chart(
-                quality_report["missing_pct"],
-                title="Missing Values by Column",
-                height=250
-            )
-            st.plotly_chart(fig, use_container_width=True)
-
-        # Outlier detection
-        st.markdown("#### Outlier Detection (IQR Method)")
-        outliers = analytics.detect_outliers_iqr(df)
-
-        if outliers:
-            total_outliers = sum(outliers.values())
-            if total_outliers > 0:
-                st.warning(f"Found {total_outliers:,} potential outliers across {len([v for v in outliers.values() if v > 0])} columns")
-
-                outlier_df = pd.DataFrame({
-                    "Column": [k.replace("_", " ").title() for k in outliers.keys()],
-                    "Outliers": list(outliers.values()),
-                    "% of Data": [round(v / len(df) * 100, 1) for v in outliers.values()]
-                })
-                outlier_df = outlier_df[outlier_df["Outliers"] > 0].sort_values("Outliers", ascending=False)
-
-                st.dataframe(outlier_df, use_container_width=True, hide_index=True)
-            else:
-                st.success("No outliers detected using IQR method!")
-        else:
-            st.info("No numeric columns available for outlier detection.")
-
-    spacer("1rem")
     st.markdown(f"""
-    <div style="text-align: center; padding: 1rem; background: {COLORS['bg_card']}; border-radius: 12px; border: 1px solid {COLORS['border']};">
-        <p style="color: {COLORS['text_secondary']}; margin: 0;">
-            Proceed to <strong>Dashboard Overview</strong> tab for KPIs and bottleneck analysis
-        </p>
+    <div style="background: linear-gradient(135deg, {COLORS['bg_dark']} 0%, #1e293b 100%); border-radius: 20px; padding: 2rem; margin-bottom: 0; border: 1px solid {COLORS['primary']}30; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -30px; right: -30px; width: 150px; height: 150px; background: radial-gradient(circle, {COLORS['primary']}15 0%, transparent 70%); border-radius: 50%;"></div>
+        <div style="position: relative; z-index: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h1 style="color: {COLORS['text_primary']}; margin: 0 0 0.25rem 0; font-size: 1.75rem; font-weight: 700;">🍕 {config.business_name}</h1>
+                    <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 1rem;">{config.tagline}</p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="display: inline-block; background: {badge_color}20; border: 1px solid {badge_color}; padding: 0.25rem 0.75rem; border-radius: 20px; margin-bottom: 0.5rem;">
+                        <span style="color: {badge_color}; font-weight: 600; font-size: 0.75rem;">{badge_text} • {quality_score:.0f}%</span>
+                    </div>
+                    <p style="color: {COLORS['text_muted']}; margin: 0; font-size: 0.8rem;">Data Quality Score</p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 2rem; margin-top: 1.25rem; flex-wrap: wrap;">
+                <div>
+                    <span style="color: {COLORS['text_muted']}; font-size: 0.8rem;">Period:</span>
+                    <span style="color: {COLORS['text_primary']}; font-size: 0.9rem; margin-left: 0.5rem;">{date_str}</span>
+                </div>
+                <div>
+                    <span style="color: {COLORS['text_muted']}; font-size: 0.8rem;">Total Orders:</span>
+                    <span style="color: {COLORS['text_primary']}; font-size: 0.9rem; font-weight: 600; margin-left: 0.5rem;">{len(df):,}</span>
+                </div>
+                <div>
+                    <span style="color: {COLORS['text_muted']}; font-size: 0.8rem;">Last Updated:</span>
+                    <span style="color: {COLORS['text_primary']}; font-size: 0.9rem; margin-left: 0.5rem;">{datetime.now().strftime('%Y-%m-%d %H:%M')}</span>
+                </div>
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
 
-def render_dashboard_tab():
-    """Render the main dashboard overview with automated analytics."""
-    st.header("Dashboard Overview")
-    df = st.session_state.df
+def render_kpi_row(df: pd.DataFrame):
+    """Render 4 key business KPIs in a row."""
+    st.markdown(f'<h3 style="color: {COLORS["text_primary"]}; margin-bottom: 1rem;">Key Performance Indicators</h3>', unsafe_allow_html=True)
 
-    st.markdown("### Quick Stats")
-    stats = get_summary_stats(df)
     col1, col2, col3, col4 = st.columns(4)
+
+    # KPI 1: Total Orders
     with col1:
-        render_kpi_card(title="Total Orders", value=stats["total_orders"], icon="📦", status="neutral")
+        render_kpi_card(
+            title="Total Orders",
+            value=f"{len(df):,}",
+            icon="📦",
+            status="neutral"
+        )
+
+    # KPI 2: On-Time Delivery Rate
     with col2:
         if "delivery_target_met" in df.columns:
             on_time_pct = df["delivery_target_met"].mean() * 100
             status = "good" if on_time_pct >= 85 else "warning" if on_time_pct >= 70 else "danger"
-            render_kpi_card(title="On-Time Delivery", value=f"{on_time_pct:.1f}", suffix="%", icon="⏱️", status=status, target="Target: 85%")
+            render_kpi_card(
+                title="On-Time Delivery",
+                value=f"{on_time_pct:.1f}",
+                suffix="%",
+                icon="⏱️",
+                status=status,
+                target="Target: 85%"
+            )
+        else:
+            render_kpi_card(title="On-Time Delivery", value="N/A", icon="⏱️", status="neutral")
+
+    # KPI 3: Complaint Rate
     with col3:
         if "complaint" in df.columns:
             complaint_rate = df["complaint"].mean() * 100
             status = "good" if complaint_rate <= 5 else "warning" if complaint_rate <= 10 else "danger"
-            render_kpi_card(title="Complaint Rate", value=f"{complaint_rate:.1f}", suffix="%", icon="😤", status=status, target="Target: <5%")
+            render_kpi_card(
+                title="Complaint Rate",
+                value=f"{complaint_rate:.1f}",
+                suffix="%",
+                icon="😤",
+                status=status,
+                target="Target: <5%"
+            )
+        else:
+            render_kpi_card(title="Complaint Rate", value="N/A", icon="😤", status="neutral")
+
+    # KPI 4: Average Delivery Time
     with col4:
         if "total_process_time" in df.columns:
             avg_time = df["total_process_time"].mean()
             status = "good" if avg_time <= 25 else "warning" if avg_time <= 30 else "danger"
-            render_kpi_card(title="Avg Delivery Time", value=f"{avg_time:.1f}", suffix=" min", icon="🚚", status=status, target="Target: 25 min")
+            render_kpi_card(
+                title="Avg Delivery Time",
+                value=f"{avg_time:.1f}",
+                suffix=" min",
+                icon="🚚",
+                status=status,
+                target="Target: 25 min"
+            )
+        else:
+            render_kpi_card(title="Avg Delivery Time", value="N/A", icon="🚚", status="neutral")
 
-    spacer("1.5rem")
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # AUTOMATED BOTTLENECK ANALYSIS
-    # ══════════════════════════════════════════════════════════════════════════
-    st.markdown("### 🔍 Automated Bottleneck Analysis")
+def render_health_status(df: pd.DataFrame, analytics):
+    """Render overall operations health status - simple traffic light."""
+    # Calculate health metrics
+    on_time_pct = df["delivery_target_met"].mean() * 100 if "delivery_target_met" in df.columns else 0
+    complaint_pct = df["complaint"].mean() * 100 if "complaint" in df.columns else 0
+    avg_time = df["total_process_time"].mean() if "total_process_time" in df.columns else 0
 
-    analytics = get_local_analytics()
-    bottlenecks = analytics.detect_bottlenecks(df)
+    # Determine overall health
+    issues = 0
+    if on_time_pct < 85:
+        issues += 1
+    if complaint_pct > 5:
+        issues += 1
+    if avg_time > 30:
+        issues += 1
 
-    if bottlenecks:
+    if issues == 0:
+        status = "HEALTHY"
+        status_color = COLORS['success']
+        status_icon = "✅"
+        message = "Your delivery operations are performing excellently. All key metrics are within target ranges."
+    elif issues == 1:
+        status = "NEEDS ATTENTION"
+        status_color = COLORS['warning']
+        status_icon = "⚠️"
+        message = "Your operations are mostly on track, but one area needs improvement. Review the issues below."
+    else:
+        status = "CRITICAL"
+        status_color = COLORS['danger']
+        status_icon = "🚨"
+        message = "Multiple areas require immediate attention. Focus on the priority issues listed below."
+
+    st.markdown(f"""
+    <div style="background: {status_color}10; border: 1px solid {status_color}40; border-radius: 16px; padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem;">
+        <div style="font-size: 3rem;">{status_icon}</div>
+        <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <span style="color: {status_color}; font-size: 1.25rem; font-weight: 700;">{status}</span>
+                <span style="background: {status_color}20; color: {status_color}; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem;">Operations Health</span>
+            </div>
+            <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.95rem;">{message}</p>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def render_issues_actions(df: pd.DataFrame, analytics):
+    """Render issues and recommended actions in 2-column layout."""
+    col1, col2 = st.columns(2)
+
+    # LEFT: Top Issues (Bottlenecks)
+    with col1:
+        st.markdown(f'<h3 style="color: {COLORS["text_primary"]}; margin-bottom: 1rem;">🔴 Top Issues</h3>', unsafe_allow_html=True)
+
+        bottlenecks = analytics.detect_bottlenecks(df)
+
+        if bottlenecks:
+            for i, b in enumerate(bottlenecks[:3], 1):
+                severity_color = COLORS['danger'] if b.severity in ['critical', 'high'] else COLORS['warning'] if b.severity == 'medium' else COLORS['primary']
+                st.markdown(f"""
+                <div style="background: {COLORS['bg_card']}; border-left: 4px solid {severity_color}; border-radius: 0 12px 12px 0; padding: 1rem; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <span style="background: {severity_color}20; color: {severity_color}; padding: 0.15rem 0.5rem; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">{b.severity.upper()}</span>
+                        <strong style="color: {COLORS['text_primary']}; font-size: 0.95rem;">{b.area}</strong>
+                    </div>
+                    <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.85rem;">{b.impact_description}</p>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div style="background: {COLORS['success']}10; border: 1px solid {COLORS['success']}30; border-radius: 12px; padding: 1.5rem; text-align: center;">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎉</div>
+                <p style="color: {COLORS['success']}; margin: 0; font-weight: 600;">No Critical Issues</p>
+                <p style="color: {COLORS['text_muted']}; margin: 0.25rem 0 0 0; font-size: 0.85rem;">Your operations are running smoothly!</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # RIGHT: Recommended Actions
+    with col2:
+        st.markdown(f'<h3 style="color: {COLORS["text_primary"]}; margin-bottom: 1rem;">✅ Recommended Actions</h3>', unsafe_allow_html=True)
+
+        recommendations = analytics.generate_recommendations(df)
+
+        if recommendations:
+            for i, rec in enumerate(recommendations[:3], 1):
+                priority = rec.get('priority', 'medium')
+                priority_color = COLORS['danger'] if priority == 'high' else COLORS['warning'] if priority == 'medium' else COLORS['success']
+                title = rec.get('title', f'Action {i}')
+                description = rec.get('description', '')
+
+                st.markdown(f"""
+                <div style="background: {COLORS['bg_card']}; border: 1px solid {COLORS['border']}; border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <span style="background: {priority_color}20; color: {priority_color}; padding: 0.15rem 0.5rem; border-radius: 8px; font-size: 0.7rem; font-weight: 600;">{priority.upper()}</span>
+                        <strong style="color: {COLORS['text_primary']}; font-size: 0.95rem;">{title}</strong>
+                    </div>
+                    <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.85rem;">{description}</p>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div style="background: {COLORS['bg_card']}; border: 1px solid {COLORS['border']}; border-radius: 12px; padding: 1.5rem; text-align: center;">
+                <p style="color: {COLORS['text_muted']}; margin: 0;">Upload more data to generate recommendations.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+
+def render_quick_chart(df: pd.DataFrame, analytics):
+    """Render a single performance chart - stage performance bars."""
+    st.markdown(f'<h3 style="color: {COLORS["text_primary"]}; margin-bottom: 1rem;">📊 Stage Performance vs Benchmarks</h3>', unsafe_allow_html=True)
+
+    stage_breakdown = analytics.get_stage_breakdown(df)
+
+    if stage_breakdown:
+        # Build chart data with benchmarks
+        benchmarks = analytics.BENCHMARKS
+        chart_data = []
+
+        for stage, avg_time in stage_breakdown.items():
+            # Map stage names to benchmark keys
+            benchmark_key = stage.lower().replace(" ", "_")
+            if not benchmark_key.endswith("_time") and not benchmark_key.endswith("_duration"):
+                benchmark_key = benchmark_key + "_time"
+
+            benchmark = benchmarks.get(benchmark_key, benchmarks.get(stage.lower().replace(" ", "_") + "_duration", avg_time))
+
+            chart_data.append({
+                "Stage": stage,
+                "Actual": round(avg_time, 1),
+                "Benchmark": benchmark
+            })
+
+        chart_df = pd.DataFrame(chart_data)
+
+        # Render as horizontal progress bars
+        for _, row in chart_df.iterrows():
+            actual = row["Actual"]
+            benchmark = row["Benchmark"]
+            pct = min((actual / benchmark) * 100, 150) if benchmark > 0 else 0
+            color = COLORS['success'] if actual <= benchmark else COLORS['warning'] if actual <= benchmark * 1.2 else COLORS['danger']
+
+            st.markdown(f"""
+            <div style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                    <span style="color: {COLORS['text_primary']}; font-weight: 500;">{row['Stage']}</span>
+                    <span style="color: {color}; font-weight: 600;">{actual} min <span style="color: {COLORS['text_muted']}; font-weight: 400;">/ {benchmark} min target</span></span>
+                </div>
+                <div style="background: {COLORS['bg_card']}; border-radius: 8px; height: 12px; overflow: hidden;">
+                    <div style="background: {color}; height: 100%; width: {min(pct, 100)}%; border-radius: 8px; transition: width 0.3s;"></div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("Stage performance data not available.")
+
+
+def render_advanced_section(df: pd.DataFrame):
+    """Render advanced analysis section - collapsed by default for technical users."""
+    with st.expander("🔬 Advanced Analysis (Technical Users)", expanded=False):
         st.markdown(f"""
-        <div style="
-            background: {COLORS['bg_card']};
-            border: 1px solid {COLORS['border']};
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        ">
+        <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; border: 1px solid {COLORS['border']};">
             <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 0.9rem;">
-                Found <strong>{len(bottlenecks)}</strong> bottlenecks in your operations
+                This section contains detailed technical analysis for data analysts and technical users.
+                Most managers can skip this section.
             </p>
         </div>
         """, unsafe_allow_html=True)
 
-        for b in bottlenecks[:5]:
-            severity_color = COLORS['danger'] if b.severity in ['critical', 'high'] else COLORS['warning'] if b.severity == 'medium' else COLORS['primary']
-            st.markdown(f"""
-            <div style="
-                background: {severity_color}10;
-                border-left: 3px solid {severity_color};
-                padding: 0.75rem 1rem;
-                border-radius: 0 8px 8px 0;
-                margin-bottom: 0.5rem;
-            ">
-                <strong style="color: {COLORS['text_primary']};">{b.area}</strong>
-                <span style="color: {severity_color}; font-size: 0.8rem; margin-left: 0.5rem;">{b.severity.upper()}</span>
-                <p style="color: {COLORS['text_secondary']}; margin: 0.25rem 0 0 0; font-size: 0.875rem;">
-                    {b.impact_description}
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.success("No significant bottlenecks detected! Your operations are running smoothly.")
+        tab1, tab2, tab3 = st.tabs(["Data Preview", "Column Summary", "Quick Stats"])
 
-    st.markdown("---")
+        with tab1:
+            st.dataframe(df.head(100), use_container_width=True, height=400)
 
-    # ══════════════════════════════════════════════════════════════════════════
-    # AUTOMATED RECOMMENDATIONS
-    # ══════════════════════════════════════════════════════════════════════════
-    st.markdown("### 💡 Automated Recommendations")
+        with tab2:
+            # Column types summary
+            col_summary = []
+            for col in df.columns:
+                dtype = str(df[col].dtype)
+                missing = df[col].isna().sum()
+                unique = df[col].nunique()
+                col_summary.append({
+                    "Column": col,
+                    "Type": dtype,
+                    "Missing": missing,
+                    "Unique": unique
+                })
+            st.dataframe(pd.DataFrame(col_summary), use_container_width=True, hide_index=True)
 
-    recommendations = analytics.generate_recommendations(df)
-
-    if recommendations:
-        for i, rec in enumerate(recommendations[:5], 1):
-            priority = rec.get('priority', 'medium')
-            priority_color = COLORS['danger'] if priority == 'high' else COLORS['warning'] if priority == 'medium' else COLORS['success']
-            title = rec.get('title', f'Recommendation {i}')
-            description = rec.get('description', '')
-            impact = rec.get('impact', 'Improved efficiency')
-
-            # Build HTML as single line to avoid rendering issues
-            rec_html = f'<div style="background:{COLORS["bg_card"]};border:1px solid {COLORS["border"]};border-radius:12px;padding:1rem;margin-bottom:0.75rem;"><div style="display:flex;align-items:center;margin-bottom:0.5rem;"><span style="background:{priority_color}20;color:{priority_color};padding:0.2rem 0.6rem;border-radius:12px;font-size:0.75rem;font-weight:600;margin-right:0.75rem;">{priority.upper()}</span><strong style="color:{COLORS["text_primary"]};">{title}</strong></div><div style="color:{COLORS["text_secondary"]};margin:0;font-size:0.9rem;">{description}</div><div style="color:{COLORS["text_muted"]};margin:0.5rem 0 0 0;font-size:0.8rem;">💰 Expected Impact: {impact}</div></div>'
-            st.markdown(rec_html, unsafe_allow_html=True)
-    else:
-        st.info("Upload more data to generate personalized recommendations.")
-
-    spacer("1rem")
-
-    st.markdown(f'<div style="background-color:{COLORS["bg_card"]};border-radius:12px;padding:1.5rem;border-left:4px solid {COLORS["primary"]};text-align:center;"><h3 style="color:{COLORS["text_primary"]};margin-bottom:0.5rem;">🚀 Analysis Ready</h3><p style="color:{COLORS["text_secondary"]};">Use the sidebar to navigate to other detailed analysis pages.</p></div>', unsafe_allow_html=True)
-    spacer("1.5rem")
-
-    with st.expander("📋 Preview Final Data", expanded=False):
-        st.dataframe(df.head(100), use_container_width=True, height=400)
+        with tab3:
+            # Basic statistics for numeric columns
+            numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if numeric_cols:
+                st.dataframe(df[numeric_cols].describe().round(2), use_container_width=True)
+            else:
+                st.info("No numeric columns found.")
 
 
 if __name__ == "__main__":
