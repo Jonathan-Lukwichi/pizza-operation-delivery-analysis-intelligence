@@ -1980,5 +1980,75 @@ html, body, .main, [data-testid="stAppViewContainer"] {
     overflow-x: hidden !important;
     max-width: 100vw !important;
 }
+
+/* ===== PIPELINE UI RESPONSIVE STYLES ===== */
+
+/* Pipeline hero section */
+@media (max-width: 768px) {
+    /* Hero section */
+    div[style*="border-radius: 20px"][style*="padding: 2.5rem"] {
+        padding: 1.5rem !important;
+        border-radius: 12px !important;
+    }
+
+    /* Hero title */
+    div[style*="font-size: 2rem"][style*="font-weight: 700"] {
+        font-size: 1.5rem !important;
+    }
+
+    /* Data summary grid - stack on mobile */
+    div[style*="grid-template-columns: repeat(3, 1fr)"] {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+
+    /* Pipeline steps grid - 3x2 on tablet, stack on mobile */
+    div[style*="grid-template-columns: repeat(5, 1fr)"] {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.5rem !important;
+    }
+
+    /* Success summary grid */
+    div[style*="grid-template-columns: repeat(4, 1fr)"][style*="max-width: 600px"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Pipeline steps - 2 columns on small mobile */
+    div[style*="grid-template-columns: repeat(5, 1fr)"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Success summary - stack on small mobile */
+    div[style*="grid-template-columns: repeat(4, 1fr)"][style*="max-width: 600px"] {
+        grid-template-columns: 1fr 1fr !important;
+    }
+
+    /* Hero badge */
+    div[style*="display: inline-block"][style*="padding: 0.5rem 1.5rem"] {
+        padding: 0.35rem 1rem !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* Pipeline step result cards */
+div[style*="display: flex"][style*="border-left: 4px solid"] {
+    flex-wrap: wrap !important;
+}
+
+@media (max-width: 640px) {
+    div[style*="display: flex"][style*="border-left: 4px solid"] span[style*="font-size: 0.875rem"] {
+        width: 100% !important;
+        margin-top: 0.25rem !important;
+    }
+}
+
+/* Success celebration card */
+@media (max-width: 768px) {
+    div[style*="font-size: 4rem"][style*="margin-bottom: 1rem"] {
+        font-size: 3rem !important;
+    }
+}
 </style>
 """

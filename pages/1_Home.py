@@ -115,65 +115,132 @@ def main():
 def render_one_click_prepare():
     """
     Render the one-click data preparation interface.
-    Shows pipeline progress and results.
+    Shows pipeline progress and results with polished UI.
     """
+    df = st.session_state.df_original
+    config = get_config()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # HERO SECTION
+    # ══════════════════════════════════════════════════════════════════════════
     st.markdown(f"""
-    <div style="background: linear-gradient(135deg, {COLORS['primary']}20 0%, {COLORS['secondary']}10 100%); border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; border: 1px solid {COLORS['primary']}30;">
-        <div style="text-align: center;">
-            <h2 style="color: {COLORS['text_primary']}; margin: 0 0 0.5rem 0;">🚀 One-Click Data Preparation</h2>
-            <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 1rem;">Automatically clean, transform, and enrich your data for analysis</p>
+    <div style="background: linear-gradient(135deg, {COLORS['bg_dark']} 0%, #1e293b 100%); border-radius: 20px; padding: 2.5rem; margin-bottom: 2rem; border: 1px solid {COLORS['primary']}40; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: radial-gradient(circle, {COLORS['primary']}20 0%, transparent 70%); border-radius: 50%;"></div>
+        <div style="position: absolute; bottom: -30px; left: -30px; width: 150px; height: 150px; background: radial-gradient(circle, {COLORS['secondary']}15 0%, transparent 70%); border-radius: 50%;"></div>
+        <div style="position: relative; z-index: 1; text-align: center;">
+            <div style="display: inline-block; background: linear-gradient(135deg, {COLORS['primary']} 0%, {COLORS['secondary']} 100%); padding: 0.5rem 1.5rem; border-radius: 20px; margin-bottom: 1rem;">
+                <span style="color: white; font-weight: 600; font-size: 0.875rem;">⚡ INTELLIGENT PIPELINE</span>
+            </div>
+            <h1 style="color: {COLORS['text_primary']}; margin: 0 0 0.75rem 0; font-size: 2rem; font-weight: 700;">One-Click Data Preparation</h1>
+            <p style="color: {COLORS['text_secondary']}; margin: 0; font-size: 1.1rem; max-width: 600px; margin: 0 auto;">Transform raw data into analysis-ready insights in seconds</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    df = st.session_state.df_original
-    config = get_config()
+    # ══════════════════════════════════════════════════════════════════════════
+    # DATA SUMMARY CARDS
+    # ══════════════════════════════════════════════════════════════════════════
+    missing_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100)
+    missing_color = COLORS['success'] if missing_pct < 1 else COLORS['warning'] if missing_pct < 5 else COLORS['danger']
 
-    # Show data preview
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Rows", f"{len(df):,}")
-    with col2:
-        st.metric("Columns", len(df.columns))
-    with col3:
-        missing_pct = (df.isnull().sum().sum() / (df.shape[0] * df.shape[1]) * 100)
-        st.metric("Missing Values", f"{missing_pct:.1f}%")
+    st.markdown(f"""
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+        <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1.25rem; border: 1px solid {COLORS['border']}; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.25rem;">📊</div>
+            <div style="color: {COLORS['text_primary']}; font-size: 1.75rem; font-weight: 700;">{len(df):,}</div>
+            <div style="color: {COLORS['text_muted']}; font-size: 0.875rem; text-transform: uppercase;">Records</div>
+        </div>
+        <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1.25rem; border: 1px solid {COLORS['border']}; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.25rem;">📋</div>
+            <div style="color: {COLORS['text_primary']}; font-size: 1.75rem; font-weight: 700;">{len(df.columns)}</div>
+            <div style="color: {COLORS['text_muted']}; font-size: 0.875rem; text-transform: uppercase;">Columns</div>
+        </div>
+        <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1.25rem; border: 1px solid {COLORS['border']}; text-align: center;">
+            <div style="font-size: 2rem; margin-bottom: 0.25rem;">🔍</div>
+            <div style="color: {missing_color}; font-size: 1.75rem; font-weight: 700;">{missing_pct:.1f}%</div>
+            <div style="color: {COLORS['text_muted']}; font-size: 0.875rem; text-transform: uppercase;">Missing Data</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("---")
-
-    # Pipeline description
-    st.markdown("#### What will happen:")
-
-    steps_info = [
-        ("🔍", "Schema Detection", "Auto-detect and map column names to standard format"),
-        ("🏷️", "Column Standardization", "Rename columns for consistent analytics"),
-        ("🧹", "Data Cleaning", "Handle missing values, outliers, and format issues"),
-        ("✨", "Data Enrichment", "Add computed columns (hour, day, peak hours, targets)"),
-        ("✅", "Quality Validation", "Verify data is ready for analysis"),
-    ]
-
-    for icon, title, desc in steps_info:
-        st.markdown(f"""
-        <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding: 0.5rem; background: {COLORS['bg_card']}; border-radius: 8px;">
-            <span style="font-size: 1.5rem; margin-right: 1rem;">{icon}</span>
-            <div>
-                <strong style="color: {COLORS['text_primary']};">{title}</strong>
-                <p style="color: {COLORS['text_muted']}; margin: 0; font-size: 0.85rem;">{desc}</p>
+    # ══════════════════════════════════════════════════════════════════════════
+    # PIPELINE STEPS PREVIEW
+    # ══════════════════════════════════════════════════════════════════════════
+    st.markdown(f"""
+    <div style="background: {COLORS['bg_card']}; border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; border: 1px solid {COLORS['border']};">
+        <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0; font-size: 1rem; display: flex; align-items: center;">
+            <span style="background: {COLORS['primary']}20; padding: 0.25rem 0.5rem; border-radius: 6px; margin-right: 0.5rem;">⚙️</span>
+            Pipeline Steps
+        </h4>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem;">
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['primary']}10; border-radius: 8px; border: 1px solid {COLORS['primary']}30;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🔍</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Detect</div>
+            </div>
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['info']}10; border-radius: 8px; border: 1px solid {COLORS['info']}30;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🏷️</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Map</div>
+            </div>
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['warning']}10; border-radius: 8px; border: 1px solid {COLORS['warning']}30;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🧹</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Clean</div>
+            </div>
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['secondary']}10; border-radius: 8px; border: 1px solid {COLORS['secondary']}30;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">✨</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Enrich</div>
+            </div>
+            <div style="text-align: center; padding: 0.75rem 0.5rem; background: {COLORS['success']}10; border-radius: 8px; border: 1px solid {COLORS['success']}30;">
+                <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">✅</div>
+                <div style="color: {COLORS['text_primary']}; font-size: 0.75rem; font-weight: 600;">Validate</div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.markdown("")
-
-    # Two options: One-click or Manual
-    col1, col2 = st.columns(2)
+    # ══════════════════════════════════════════════════════════════════════════
+    # ACTION BUTTONS
+    # ══════════════════════════════════════════════════════════════════════════
+    col1, col2 = st.columns([2, 1])
 
     with col1:
-        if st.button("🚀 PREPARE DATA AUTOMATICALLY", type="primary", use_container_width=True):
-            # Run pipeline with progress
+        prepare_clicked = st.button(
+            "🚀 PREPARE DATA AUTOMATICALLY",
+            type="primary",
+            use_container_width=True,
+            help="Run the intelligent pipeline to clean and transform your data"
+        )
+
+    with col2:
+        manual_clicked = st.button(
+            "🔧 Manual Mode",
+            type="secondary",
+            use_container_width=True,
+            help="Manually clean and transform your data step by step"
+        )
+
+    if manual_clicked:
+        st.session_state.df = st.session_state.df_original.copy()
+        st.session_state.show_manual_cleaning = True
+        st.rerun()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # PIPELINE EXECUTION
+    # ══════════════════════════════════════════════════════════════════════════
+    if prepare_clicked:
+        st.markdown("---")
+
+        # Progress container
+        progress_container = st.container()
+
+        with progress_container:
+            st.markdown(f"""
+            <div style="background: {COLORS['bg_card']}; border-radius: 12px; padding: 1.5rem; border: 1px solid {COLORS['border']};">
+                <h4 style="color: {COLORS['text_primary']}; margin: 0 0 1rem 0;">🔄 Processing...</h4>
+            </div>
+            """, unsafe_allow_html=True)
+
             progress_bar = st.progress(0)
             status_text = st.empty()
-            step_container = st.container()
 
             def update_progress(step_num, total_steps, step_name):
                 progress_bar.progress(step_num / total_steps)
@@ -189,14 +256,44 @@ def render_one_click_prepare():
 
             if result.success:
                 progress_bar.progress(1.0)
-                status_text.markdown("**✅ Preparation Complete!**")
+                status_text.empty()
 
-                # Show results
-                with step_container:
-                    st.markdown("---")
-                    st.markdown("#### Pipeline Results")
+                # Save prepared data
+                st.session_state.df = result.df
+                st.session_state.pipeline_result = result.to_dict()
+                st.session_state.data_is_clean = True
 
-                    # Step results
+                # Show success screen
+                summary = result.summary
+
+                st.markdown(f"""
+                <div style="background: linear-gradient(135deg, {COLORS['success']}15 0%, {COLORS['success']}05 100%); border-radius: 16px; padding: 2rem; margin: 1rem 0; border: 1px solid {COLORS['success']}40; text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+                    <h2 style="color: {COLORS['success']}; margin: 0 0 0.5rem 0;">Data Preparation Complete!</h2>
+                    <p style="color: {COLORS['text_secondary']}; margin: 0 0 1.5rem 0;">Your data is now ready for analysis</p>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; max-width: 600px; margin: 0 auto;">
+                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                            <div style="color: {COLORS['success']}; font-size: 1.5rem; font-weight: 700;">{result.quality_score:.0f}%</div>
+                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Quality</div>
+                        </div>
+                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                            <div style="color: {COLORS['primary']}; font-size: 1.5rem; font-weight: 700;">{summary.get('columns_mapped', 0)}</div>
+                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Mapped</div>
+                        </div>
+                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                            <div style="color: {COLORS['warning']}; font-size: 1.5rem; font-weight: 700;">{summary.get('cleaning_actions', 0)}</div>
+                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Cleaned</div>
+                        </div>
+                        <div style="background: {COLORS['bg_card']}; border-radius: 8px; padding: 1rem;">
+                            <div style="color: {COLORS['secondary']}; font-size: 1.5rem; font-weight: 700;">{summary.get('columns_added', 0)}</div>
+                            <div style="color: {COLORS['text_muted']}; font-size: 0.75rem;">Enriched</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Pipeline step details (collapsed)
+                with st.expander("📋 View Pipeline Details", expanded=False):
                     for step in result.steps:
                         if step.status == "completed":
                             icon = "✅"
@@ -209,77 +306,72 @@ def render_one_click_prepare():
                             color = COLORS['warning']
 
                         st.markdown(f"""
-                        <div style="display: flex; align-items: center; padding: 0.5rem; margin-bottom: 0.25rem; background: {color}10; border-radius: 6px; border-left: 3px solid {color};">
-                            <span style="margin-right: 0.75rem;">{icon}</span>
+                        <div style="display: flex; align-items: center; padding: 0.75rem; margin-bottom: 0.5rem; background: {color}10; border-radius: 8px; border-left: 4px solid {color};">
+                            <span style="font-size: 1.25rem; margin-right: 0.75rem;">{icon}</span>
                             <div style="flex: 1;">
                                 <strong style="color: {COLORS['text_primary']};">{step.name}</strong>
                                 <span style="color: {COLORS['text_muted']}; font-size: 0.8rem; margin-left: 0.5rem;">({step.duration_ms}ms)</span>
                             </div>
-                            <span style="color: {COLORS['text_secondary']}; font-size: 0.85rem;">{step.message}</span>
+                            <span style="color: {COLORS['text_secondary']}; font-size: 0.875rem;">{step.message}</span>
                         </div>
                         """, unsafe_allow_html=True)
 
-                    # Summary metrics
-                    st.markdown("---")
-                    summary = result.summary
-
-                    col_a, col_b, col_c, col_d = st.columns(4)
-                    with col_a:
-                        st.metric("Quality Score", f"{result.quality_score}%")
-                    with col_b:
-                        st.metric("Columns Mapped", summary.get('columns_mapped', 0))
-                    with col_c:
-                        st.metric("Cleaning Actions", summary.get('cleaning_actions', 0))
-                    with col_d:
-                        st.metric("Columns Added", summary.get('columns_added', 0))
-
-                # Save prepared data
-                st.session_state.df = result.df
-                st.session_state.pipeline_result = result.to_dict()
-                st.session_state.data_is_clean = True
-
-                st.success("🎉 Data is ready for analysis! Navigate to the Dashboard or EDA tabs.")
                 st.balloons()
 
+                # Navigation button
+                spacer("1rem")
+                if st.button("📊 Go to Dashboard →", type="primary", use_container_width=True):
+                    st.rerun()
+
             else:
-                status_text.markdown("**❌ Pipeline Failed**")
+                st.markdown(f"""
+                <div style="background: {COLORS['danger']}15; border-radius: 12px; padding: 1.5rem; border: 1px solid {COLORS['danger']}40;">
+                    <h4 style="color: {COLORS['danger']}; margin: 0 0 0.5rem 0;">❌ Pipeline Failed</h4>
+                    <p style="color: {COLORS['text_secondary']}; margin: 0;">Please try manual cleaning mode or check your data format.</p>
+                </div>
+                """, unsafe_allow_html=True)
+
                 for step in result.steps:
                     if step.status == "failed":
                         st.error(f"Failed at {step.name}: {step.message}")
 
+    # ══════════════════════════════════════════════════════════════════════════
+    # PREVIEW SECTIONS
+    # ══════════════════════════════════════════════════════════════════════════
+    spacer("1rem")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        with st.expander("📋 Preview Data", expanded=False):
+            st.dataframe(df.head(15), use_container_width=True, height=300)
+
     with col2:
-        if st.button("🔧 MANUAL CLEANING", type="secondary", use_container_width=True):
-            # Just copy original to df and let user clean manually
-            st.session_state.df = st.session_state.df_original.copy()
-            st.session_state.show_manual_cleaning = True
-            st.rerun()
+        with st.expander("🔍 Column Mappings", expanded=False):
+            from core.schema_mapper import SchemaMapper
+            mapper = SchemaMapper()
+            report = mapper.get_mapping_report(list(df.columns))
 
-    # Show sample of original data
-    with st.expander("📋 Preview Original Data", expanded=False):
-        st.dataframe(df.head(20), use_container_width=True)
+            # Mapping rate badge
+            rate = report['mapping_rate'] * 100
+            rate_color = COLORS['success'] if rate >= 80 else COLORS['warning'] if rate >= 50 else COLORS['danger']
+            st.markdown(f"""
+            <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                <span style="background: {rate_color}20; color: {rate_color}; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 600; font-size: 0.875rem;">{rate:.0f}% Match Rate</span>
+                <span style="color: {COLORS['text_muted']}; margin-left: 0.5rem; font-size: 0.85rem;">{report['mapped_columns']}/{report['total_columns']} columns</span>
+            </div>
+            """, unsafe_allow_html=True)
 
-    # Show detected column mappings
-    with st.expander("🔍 Preview Column Mappings", expanded=False):
-        from core.schema_mapper import SchemaMapper
-        mapper = SchemaMapper()
-        report = mapper.get_mapping_report(list(df.columns))
-
-        st.markdown(f"**Mapping Rate:** {report['mapping_rate']*100:.0f}% ({report['mapped_columns']}/{report['total_columns']} columns)")
-
-        if report['mappings']:
-            mapping_data = []
-            for m in report['mappings']:
-                mapping_data.append({
-                    "Original": m['source'],
-                    "Standard Name": m['target'],
-                    "Confidence": f"{m['confidence']*100:.0f}%",
-                    "Match Type": m['match_type']
-                })
-            st.dataframe(pd.DataFrame(mapping_data), use_container_width=True, hide_index=True)
-
-        if report['unmapped']:
-            st.markdown("**Unmapped Columns:**")
-            st.caption(", ".join(report['unmapped']))
+            if report['mappings']:
+                mapping_data = []
+                for m in report['mappings']:
+                    mapping_data.append({
+                        "Original": m['source'],
+                        "→": "→",
+                        "Standard": m['target'],
+                        "Conf.": f"{m['confidence']*100:.0f}%"
+                    })
+                st.dataframe(pd.DataFrame(mapping_data), use_container_width=True, hide_index=True, height=250)
 
 
 def render_upload_section():
