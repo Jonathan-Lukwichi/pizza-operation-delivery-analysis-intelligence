@@ -4,6 +4,9 @@ Local Analytics Engine
 
 Offline-capable analytics that work without AI/internet.
 Optimized for South African market conditions (load shedding, mobile data).
+
+All benchmarks and thresholds are driven by the BusinessConfig
+set in Process Configuration page.
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -11,6 +14,8 @@ from dataclasses import dataclass
 import pandas as pd
 import numpy as np
 from datetime import datetime
+
+from core.config import get_config
 
 
 @dataclass
@@ -53,19 +58,35 @@ class LocalAnalytics:
     - Load shedding conditions (no internet)
     - Mobile data saving (no API calls)
     - Quick response times
+
+    All benchmarks come from BusinessConfig (Process Configuration page).
     """
 
-    # Industry benchmarks for pizza delivery
-    BENCHMARKS = {
-        "on_time_rate": 85.0,  # Target: 85%+ on-time
-        "complaint_rate": 5.0,  # Target: <5% complaints
-        "avg_delivery_time": 30.0,  # Target: 30 min total
-        "dough_prep_time": 5.0,
-        "styling_time": 3.0,
-        "oven_time": 10.0,
-        "boxing_time": 2.0,
-        "delivery_duration": 10.0,
-    }
+    @property
+    def config(self):
+        """Get current business config."""
+        return get_config()
+
+    @property
+    def BENCHMARKS(self) -> Dict[str, float]:
+        """
+        Get benchmarks from config instead of hardcoded values.
+
+        Returns config-driven stage benchmarks plus KPI thresholds.
+        """
+        config = self.config
+
+        # Start with stage benchmarks from config
+        benchmarks = config.get_stage_benchmarks()
+
+        # Add KPI thresholds from config
+        benchmarks.update({
+            "on_time_rate": config.on_time_target_pct,
+            "complaint_rate": config.complaint_target_pct,
+            "avg_delivery_time": float(config.delivery_target_minutes),
+        })
+
+        return benchmarks
 
     def get_kpis(self, df: pd.DataFrame) -> KPIs:
         """
@@ -195,7 +216,7 @@ class LocalAnalytics:
 
     def generate_alerts(self, df: pd.DataFrame) -> List[Alert]:
         """
-        Generate operational alerts based on thresholds.
+        Generate operational alerts based on config thresholds.
 
         Args:
             df: Orders dataframe
@@ -205,38 +226,47 @@ class LocalAnalytics:
         """
         alerts = []
         kpis = self.get_kpis(df)
+        config = self.config
 
-        # On-time rate alert
-        if kpis.on_time_rate < 85:
-            level = "critical" if kpis.on_time_rate < 70 else "warning"
+        # Get thresholds from config
+        on_time_target = config.on_time_target_pct
+        complaint_target = config.complaint_target_pct
+        delivery_target = config.delivery_target_minutes
+
+        # On-time rate alert (using config threshold)
+        if kpis.on_time_rate < on_time_target:
+            critical_threshold = on_time_target - 15  # Critical if 15% below target
+            level = "critical" if kpis.on_time_rate < critical_threshold else "warning"
             alerts.append(Alert(
                 level=level,
                 title="On-Time Delivery Below Target",
-                description=f"On-time rate is {kpis.on_time_rate}%, target is 85%",
+                description=f"On-time rate is {kpis.on_time_rate}%, target is {on_time_target}%",
                 metric_value=kpis.on_time_rate,
-                threshold=85.0
+                threshold=on_time_target
             ))
 
-        # Complaint rate alert
-        if kpis.complaint_rate > 5:
-            level = "critical" if kpis.complaint_rate > 10 else "warning"
+        # Complaint rate alert (using config threshold)
+        if kpis.complaint_rate > complaint_target:
+            critical_threshold = complaint_target * 2  # Critical if double the target
+            level = "critical" if kpis.complaint_rate > critical_threshold else "warning"
             alerts.append(Alert(
                 level=level,
                 title="Complaint Rate Above Target",
-                description=f"Complaint rate is {kpis.complaint_rate}%, target is <5%",
+                description=f"Complaint rate is {kpis.complaint_rate}%, target is <{complaint_target}%",
                 metric_value=kpis.complaint_rate,
-                threshold=5.0
+                threshold=complaint_target
             ))
 
-        # Average delivery time alert
-        if kpis.avg_delivery_time > 30:
-            level = "critical" if kpis.avg_delivery_time > 40 else "warning"
+        # Average delivery time alert (using config threshold)
+        if kpis.avg_delivery_time > delivery_target:
+            critical_threshold = delivery_target * 1.33  # Critical if 33% above target
+            level = "critical" if kpis.avg_delivery_time > critical_threshold else "warning"
             alerts.append(Alert(
                 level=level,
                 title="Delivery Time Above Target",
-                description=f"Avg delivery is {kpis.avg_delivery_time} min, target is 30 min",
+                description=f"Avg delivery is {kpis.avg_delivery_time} min, target is {delivery_target} min",
                 metric_value=kpis.avg_delivery_time,
-                threshold=30.0
+                threshold=float(delivery_target)
             ))
 
         # Check for peak hour issues
@@ -264,6 +294,8 @@ class LocalAnalytics:
         """
         Generate rule-based recommendations (no AI).
 
+        Uses config thresholds for comparison.
+
         Args:
             df: Orders dataframe
 
@@ -273,25 +305,30 @@ class LocalAnalytics:
         recommendations = []
         bottlenecks = self.detect_bottlenecks(df)
         kpis = self.get_kpis(df)
+        config = self.config
 
-        # KPI-based recommendations
-        if kpis.on_time_rate < 85:
-            gap = 85 - kpis.on_time_rate
+        # Get thresholds from config
+        on_time_target = config.on_time_target_pct
+        complaint_target = config.complaint_target_pct
+
+        # KPI-based recommendations (using config thresholds)
+        if kpis.on_time_rate < on_time_target:
+            gap = on_time_target - kpis.on_time_rate
             recommendations.append({
                 "priority": "high",
                 "title": "Improve On-Time Delivery",
                 "action": f"Reduce total delivery time to improve on-time rate by {gap:.0f}%",
                 "expected_impact": f"Could improve customer satisfaction and reduce complaints",
-                "evidence": f"Current on-time rate: {kpis.on_time_rate}%"
+                "evidence": f"Current on-time rate: {kpis.on_time_rate}% (target: {on_time_target}%)"
             })
 
-        if kpis.complaint_rate > 5:
+        if kpis.complaint_rate > complaint_target:
             recommendations.append({
                 "priority": "high",
                 "title": "Reduce Customer Complaints",
                 "action": "Identify top complaint reasons and address root causes",
                 "expected_impact": "Improve customer retention and brand reputation",
-                "evidence": f"Current complaint rate: {kpis.complaint_rate}%"
+                "evidence": f"Current complaint rate: {kpis.complaint_rate}% (target: <{complaint_target}%)"
             })
 
         # Bottleneck-based recommendations
@@ -735,11 +772,11 @@ class LocalAnalytics:
         """
         Calculate normalized performance scores for radar chart.
 
-        Dimensions:
-        1. On-Time Rate (target: 85%)
-        2. Low Complaint Rate (target: <5%)
-        3. Fast Delivery (target: 30 min)
-        4. Kitchen Efficiency (target: 20 min)
+        Dimensions (all use config-driven targets):
+        1. On-Time Rate (target from config)
+        2. Low Complaint Rate (target from config)
+        3. Fast Delivery (target from config)
+        4. Kitchen Efficiency (sum of stage benchmarks)
         5. Peak Hour Performance (target: no slowdown vs off-peak)
         6. Area Consistency (target: low variance across areas)
 
@@ -750,37 +787,50 @@ class LocalAnalytics:
             Dictionary mapping dimension name to score (0-100)
         """
         scores = {}
+        config = self.config
 
-        # 1. On-Time Rate Score (higher is better)
+        # Get targets from config
+        on_time_target = config.on_time_target_pct
+        complaint_target = config.complaint_target_pct
+        delivery_target = config.delivery_target_minutes
+
+        # Calculate kitchen benchmark from stage configs
+        kitchen_benchmark = sum(s.target_minutes for s in config.stages if s.column_name != "delivery_duration")
+
+        # 1. On-Time Rate Score (higher is better, normalized to config target)
         if "delivery_target_met" in df.columns:
             on_time_pct = df["delivery_target_met"].mean() * 100
-            scores["On-Time Delivery"] = min(100, round(on_time_pct / 85 * 100, 1))
+            scores["On-Time Delivery"] = min(100, round(on_time_pct / on_time_target * 100, 1))
         else:
             scores["On-Time Delivery"] = 50  # Default
 
         # 2. Low Complaint Rate Score (lower complaints = higher score)
         if "complaint" in df.columns:
             complaint_pct = df["complaint"].mean() * 100
-            # 0% complaints = 100 score, 10%+ = 0 score
-            scores["Customer Satisfaction"] = max(0, min(100, round((10 - complaint_pct) / 10 * 100, 1)))
+            # 0% complaints = 100 score, double target = 0 score
+            max_complaint = complaint_target * 2
+            scores["Customer Satisfaction"] = max(0, min(100, round((max_complaint - complaint_pct) / max_complaint * 100, 1)))
         else:
             scores["Customer Satisfaction"] = 50
 
-        # 3. Fast Delivery Score (30 min target)
+        # 3. Fast Delivery Score (using config delivery target)
         if "total_process_time" in df.columns:
             avg_time = df["total_process_time"].mean()
-            # 20 min = 100, 40+ min = 0
-            scores["Delivery Speed"] = max(0, min(100, round((40 - avg_time) / 20 * 100, 1)))
+            # At or below target = 100, 33% above target = 0
+            upper_limit = delivery_target * 1.33
+            lower_limit = delivery_target * 0.67
+            scores["Delivery Speed"] = max(0, min(100, round((upper_limit - avg_time) / (upper_limit - lower_limit) * 100, 1)))
         else:
             scores["Delivery Speed"] = 50
 
-        # 4. Kitchen Efficiency Score (20 min target for prep)
+        # 4. Kitchen Efficiency Score (using sum of stage benchmarks)
         prep_cols = ["dough_prep_time", "styling_time", "oven_time", "boxing_time"]
         available_prep = [c for c in prep_cols if c in df.columns]
         if available_prep:
             avg_prep = df[available_prep].sum(axis=1).mean()
-            # 15 min = 100, 30+ min = 0
-            scores["Kitchen Efficiency"] = max(0, min(100, round((30 - avg_prep) / 15 * 100, 1)))
+            # At or below benchmark = 100, 50% above benchmark = 0
+            upper_limit = kitchen_benchmark * 1.5
+            scores["Kitchen Efficiency"] = max(0, min(100, round((upper_limit - avg_prep) / (upper_limit - kitchen_benchmark * 0.75) * 100, 1)))
         else:
             scores["Kitchen Efficiency"] = 50
 
